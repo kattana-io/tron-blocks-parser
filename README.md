@@ -1,7 +1,7 @@
 # TRON Blocks Parser
 Tron parser for [Kattana](https://app.kattana.io), requirements:
 * One block in one moment of time
-* Horizontally scaleable
+* Horizontally scalable
 
 ### How it works?
 Consume messages with block metainformation from kafka feed **tron_blocks**, parse block,
