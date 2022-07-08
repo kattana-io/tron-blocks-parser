@@ -20,14 +20,16 @@ type GetTransactionInfoByIdResp struct {
 		NetFee            int    `json:"net_fee"`
 		Result            string `json:"result"`
 	} `json:"receipt"`
-	Log []struct {
-		Address string   `json:"address"`
-		Topics  []string `json:"topics"`
-		Data    string   `json:"data"`
-	} `json:"log"`
+	Log []Log `json:"log"`
 }
 
-func (a *Api) GetTransactionInfoById(id string) *GetTransactionInfoByIdResp {
+type Log struct {
+	Address string   `json:"address"`
+	Topics  []string `json:"topics"`
+	Data    string   `json:"data"`
+}
+
+func (a *Api) GetTransactionInfoById(id string) (*GetTransactionInfoByIdResp, error) {
 	postBody, _ := json.Marshal(map[string]interface{}{
 		"value": id,
 	})
@@ -38,12 +40,12 @@ func (a *Api) GetTransactionInfoById(id string) *GetTransactionInfoByIdResp {
 
 	if err != nil {
 		a.log.Error(err.Error())
-		return &GetTransactionInfoByIdResp{}
+		return &GetTransactionInfoByIdResp{}, err
 	}
 
 	var data GetTransactionInfoByIdResp
 	decoder := json.NewDecoder(res.Body)
 	err = decoder.Decode(&data)
 
-	return &data
+	return &data, nil
 }

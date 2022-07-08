@@ -51,7 +51,7 @@ type Transaction struct {
 	RawDataHex string `json:"raw_data_hex"`
 }
 
-func (a *Api) GetBlockByNum(number int32) *GetBlockByNumResp {
+func (a *Api) GetBlockByNum(number int32) (*GetBlockByNumResp, error) {
 	postBody, _ := json.Marshal(map[string]interface{}{
 		"num": number,
 	})
@@ -62,12 +62,12 @@ func (a *Api) GetBlockByNum(number int32) *GetBlockByNumResp {
 
 	if err != nil {
 		a.log.Error(err.Error())
-		return &GetBlockByNumResp{}
+		return &GetBlockByNumResp{}, err
 	}
 
 	var data GetBlockByNumResp
 	decoder := json.NewDecoder(res.Body)
 	err = decoder.Decode(&data)
 
-	return &data
+	return &data, nil
 }
