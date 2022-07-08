@@ -1,4 +1,4 @@
-package pkg
+package tronApi
 
 import "go.uber.org/zap"
 
@@ -7,9 +7,9 @@ type Api struct {
 	log      *zap.Logger
 }
 
-func NewApi(logger *zap.Logger) *Api {
+func NewApi(nodeUrl string, logger *zap.Logger) *Api {
 	return &Api{
-		endpoint: "",
+		endpoint: nodeUrl,
 		log:      logger,
 	}
 }

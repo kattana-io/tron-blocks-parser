@@ -28,6 +28,10 @@ func main() {
 		topic = models.TRON_LIVE
 	}
 
+	// @todo enable API
+	//nodeUrl := os.Getenv("SOLIDITY_FULL_NODE_URL")
+	//api := tronApi.NewApi(nodeUrl, logger)
+
 	logger.Info(fmt.Sprintf("Start parser in %s mode", mode))
 	//publisher := transport.NewPublisher("parser.sys.parsed", os.Getenv("KAFKA"), logger)
 	t := transport.CreateConsumer(topic, logger)
@@ -36,6 +40,7 @@ func main() {
 		// @todo implement onBlock handler
 		// use publisher inside
 		// redis to cache some inter result
+		// api to get info
 		return true
 	})
 
