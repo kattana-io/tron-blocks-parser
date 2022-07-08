@@ -46,6 +46,9 @@ func (a *Api) GetTransactionInfoById(id string) (*GetTransactionInfoByIdResp, er
 	var data GetTransactionInfoByIdResp
 	decoder := json.NewDecoder(res.Body)
 	err = decoder.Decode(&data)
+	if err != nil {
+		return &GetTransactionInfoByIdResp{}, err
+	}
 
 	return &data, nil
 }

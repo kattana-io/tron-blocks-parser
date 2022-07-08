@@ -68,6 +68,9 @@ func (a *Api) GetBlockByNum(number int32) (*GetBlockByNumResp, error) {
 	var data GetBlockByNumResp
 	decoder := json.NewDecoder(res.Body)
 	err = decoder.Decode(&data)
+	if err != nil {
+		return &GetBlockByNumResp{}, err
+	}
 
 	return &data, nil
 }
