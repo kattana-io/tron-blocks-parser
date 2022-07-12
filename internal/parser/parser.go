@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"github.com/kattana-io/tron-blocks-parser/internal/integrations"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	"github.com/kattana-io/tron-blocks-parser/pkg/tronApi"
 	"github.com/vmihailenco/msgpack/v5"
@@ -9,11 +10,12 @@ import (
 )
 
 type Parser struct {
-	api      *tronApi.Api
-	log      *zap.Logger
-	failedTx []string
-	txMap    map[string]*tronApi.GetTransactionInfoByIdResp
-	state    *State
+	api        *tronApi.Api
+	log        *zap.Logger
+	failedTx   []string
+	txMap      map[string]*tronApi.GetTransactionInfoByIdResp
+	state      *State
+	tokenLists *integrations.TokenListsProvider
 }
 
 // Parse - parse single block
@@ -54,9 +56,23 @@ func (p *Parser) parseTransaction(transaction tronApi.Transaction) {
 	wg.Wait()
 }
 
+const trxTokenAddress = "TRX"
+const trxDecimals = 6
+
 func (p *Parser) GetPairTokens(pair string) (string, int32, string, int32) {
-	// TODO: Create logic to dissolve tron pairs into tokenA, tokenB
-	return "", 18, "", 18
+	pInstance := Pair{address: pair}
+	address := pInstance.GetTokenAddress()
+
+	cachedDecimals, ok := p.tokenLists.GetDecimals(address)
+	if ok {
+		return address, cachedDecimals, trxTokenAddress, trxDecimals
+	}
+	dec, err := p.api.GetTokenDecimals(address)
+	if err != nil {
+		p.log.Error("GetPairTokens: " + err.Error())
+		dec = 18
+	}
+	return address, dec, trxTokenAddress, trxDecimals
 }
 
 func (p *Parser) GetEncodedBlock() []byte {
@@ -68,11 +84,12 @@ func (p *Parser) GetEncodedBlock() []byte {
 	return b
 }
 
-func New(api *tronApi.Api, log *zap.Logger) *Parser {
+func New(api *tronApi.Api, log *zap.Logger, lists *integrations.TokenListsProvider) *Parser {
 	return &Parser{
-		api:      api,
-		log:      log,
-		failedTx: []string{},
-		txMap:    make(map[string]*tronApi.GetTransactionInfoByIdResp),
+		api:        api,
+		log:        log,
+		failedTx:   []string{},
+		txMap:      make(map[string]*tronApi.GetTransactionInfoByIdResp),
+		tokenLists: lists,
 	}
 }

@@ -24,6 +24,7 @@ const liquidityRemoved = 0x0fbf06c0
 const tokenPurchaseEvent = 0xcd60aa75
 const trxPurchaseEvent = 0xdad9ec5c
 const snapshotEvent = 0xcc7244d3
+const listingEvent = 0x9d42cb01
 
 func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, wg *sync.WaitGroup) {
 	defer wg.Done()
@@ -40,6 +41,8 @@ func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, wg *syn
 		p.onTrxPurchase(log, tx, timestamp)
 	case snapshotEvent:
 		p.onPairSnapshot(log)
+	case listingEvent:
+		p.onPairCreated(log, tx, timestamp)
 	}
 }
 
@@ -159,6 +162,15 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 // topics - operator, trx_balance, token_balance
 func (p *Parser) onPairSnapshot(log tronApi.Log) {
 
+}
+
+// onPairCreated - handle listing event
+// topics - exchange, token
+func (p *Parser) onPairCreated(log tronApi.Log, tx string, timestamp int64) {
+	factory := log.Address
+	pair := log.Topics[1]
+	//token := log.Topics[2]
+	p.state.RegisterNewPair(factory, pair, "sunswap", Chain, "", time.Unix(timestamp, 0))
 }
 
 // convert "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" -> 0xddf252ad

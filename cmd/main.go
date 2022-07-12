@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/goccy/go-json"
+	"github.com/kattana-io/tron-blocks-parser/internal/integrations"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	"github.com/kattana-io/tron-blocks-parser/internal/parser"
 	"github.com/kattana-io/tron-blocks-parser/internal/runway"
@@ -27,6 +28,7 @@ func main() {
 	runner.Run()
 
 	api := createApi(logger)
+	tokenLists := integrations.NewTokensListProvider(logger)
 
 	logger.Info(fmt.Sprintf("Start parser in %s mode", mode))
 	publisher := transport.NewPublisher("parser.sys.parsed", os.Getenv("KAFKA"), logger)
@@ -44,7 +46,7 @@ func main() {
 		/**
 		 * Process block
 		 */
-		p := parser.New(api, logger)
+		p := parser.New(api, logger, tokenLists)
 		ok := p.Parse(block)
 		if ok {
 			publisher.PublishBlock(context.Background(), p.GetEncodedBlock())
