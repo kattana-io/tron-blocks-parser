@@ -73,7 +73,10 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 	pair := log.Address
 	buyer := log.Topics[1]
 	// Dissolve pair
-	_, decimals0, _, decimals1 := p.GetPairTokens(pair)
+	_, decimals0, _, decimals1, ok := p.GetPairTokens(pair)
+	if !ok {
+		p.log.Error("Could not dissolve pair: onTokenPurchase")
+	}
 	// Normalize amounts
 	trxAmountRaw, err1 := decimal.NewFromString(log.Topics[2])
 	if err1 != nil {
@@ -118,7 +121,12 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	pair := log.Address
 	buyer := log.Topics[1]
 	// Dissolve pair
-	_, decimals0, _, decimals1 := p.GetPairTokens(pair)
+	_, decimals0, _, decimals1, ok := p.GetPairTokens(pair)
+
+	if !ok {
+		p.log.Error("Could not dissolve tokens: onTrxPurchase")
+		return
+	}
 	// Normalize amounts
 	tokenAmountRaw, err2 := decimal.NewFromString(log.Topics[2])
 	if err2 != nil {

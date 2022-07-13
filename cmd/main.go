@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/goccy/go-json"
+	"github.com/kattana-io/tron-blocks-parser/internal/cache"
 	"github.com/kattana-io/tron-blocks-parser/internal/integrations"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	"github.com/kattana-io/tron-blocks-parser/internal/parser"
@@ -24,11 +25,12 @@ func main() {
 	logger := runner.Logger()
 	registerCommandLineFlags(logger)
 	mode, topic := getRunningMode()
-	//redis := runner.Redis()
+	redis := runner.Redis()
 	runner.Run()
 
 	api := createApi(logger)
 	tokenLists := integrations.NewTokensListProvider(logger)
+	pairsCache := cache.NewPairsCache(redis, logger)
 
 	logger.Info(fmt.Sprintf("Start parser in %s mode", mode))
 	publisher := transport.NewPublisher("parser.sys.parsed", os.Getenv("KAFKA"), logger)
@@ -46,7 +48,8 @@ func main() {
 		/**
 		 * Process block
 		 */
-		p := parser.New(api, logger, tokenLists)
+		//fiatConverter := parser.NewFiatConverter(redis, logger, block.Number)
+		p := parser.New(api, logger, tokenLists, pairsCache)
 		ok := p.Parse(block)
 		if ok {
 			publisher.PublishBlock(context.Background(), p.GetEncodedBlock())
