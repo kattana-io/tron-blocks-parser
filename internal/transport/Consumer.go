@@ -53,7 +53,7 @@ func CreateConsumer(topic models.Topics, log *zap.Logger) *Consumer {
 		CommitInterval: time.Second, // flushes commits to Kafka every second
 	})
 
-	log.Info("Connected!")
+	log.Info("Connected to topic: " + string(topic))
 
 	return &Consumer{
 		reader: reader,

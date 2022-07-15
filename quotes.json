@@ -1,0 +1,34 @@
+{
+  "quotes": [
+    {
+      "Title": "Token USDC",
+      "Kind": 2,
+      "Token": "TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8",
+      "Flipped": false
+    },
+    {
+      "Title": "Token USDT",
+      "Kind": 2,
+      "Token": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "Flipped": false
+    },
+    {
+      "Title": "Token USDJ",
+      "Kind": 2,
+      "Token": "TMwFHYXLJaRUPeW6421aqXL4ZEzPRFGkGT",
+      "Flipped": false
+    },
+    {
+      "Title": "Token TUSD",
+      "Kind": 2,
+      "Token": "TUpMhErZL2fhh4sVNULAbNKLokS4GjC1F4",
+      "Flipped": false
+    },
+    {
+      "Title": "Token USDD",
+      "Kind": 2,
+      "Token": "TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn",
+      "Flipped": false
+    }
+  ]
+}
