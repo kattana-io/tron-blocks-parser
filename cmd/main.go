@@ -70,10 +70,15 @@ func main() {
 
 func createApi(logger *zap.Logger) *tronApi.Api {
 	nodeUrl := os.Getenv("SOLIDITY_FULL_NODE_URL")
+	var provider tronApi.ApiUrlProvider
 	if nodeUrl == "" {
-		logger.Fatal("Empty SOLIDITY_FULL_NODE_URL, can't continue")
+		logger.Info("Using trongrid adapter")
+		provider = tronApi.NewTrongridUrlProvider()
+	} else {
+		logger.Info("Using node adapter")
+		provider = tronApi.NewNodeUrlProvider(nodeUrl)
 	}
-	api := tronApi.NewApi(nodeUrl, logger)
+	api := tronApi.NewApi(nodeUrl, logger, provider)
 	return api
 }
 

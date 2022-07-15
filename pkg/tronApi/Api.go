@@ -10,12 +10,14 @@ import (
 type Api struct {
 	endpoint string
 	log      *zap.Logger
+	provider ApiUrlProvider
 }
 
-func NewApi(nodeUrl string, logger *zap.Logger) *Api {
+func NewApi(nodeUrl string, logger *zap.Logger, provider ApiUrlProvider) *Api {
 	return &Api{
 		endpoint: nodeUrl,
 		log:      logger,
+		provider: provider,
 	}
 }
 

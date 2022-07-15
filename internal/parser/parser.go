@@ -40,7 +40,11 @@ func (p *Parser) Parse(block models.Block) bool {
 	p.log.Info("Parsing block: " + block.Number.String())
 
 	for _, transaction := range resp.Transactions {
-		p.parseTransaction(transaction)
+		if len(transaction.RawData.Contract) > 1 || transaction.RawData.Contract[0].Type != "TransferContract" {
+			p.parseTransaction(transaction)
+		} else {
+			p.log.Info("Skipping tx without contract call: " + transaction.TxID)
+		}
 	}
 	// save prices
 	p.fiatConverter.Commit()
