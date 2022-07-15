@@ -73,12 +73,13 @@ func (a *Api) TriggerConstantContract(contractAddress string, functionSelector s
 func (a *Api) GetTokenDecimals(token string) (int32, error) {
 	postBody, _ := json.Marshal(map[string]interface{}{
 		"owner_address":     DummyCaller,
-		"contract_address":  normalizeAddress(token),
+		"contract_address":  token,
 		"function_selector": "decimals()",
 	})
 	responseBody := bytes.NewBuffer(postBody)
 
-	res, err := http.Post(fmt.Sprintf("%s/walletsolidity/triggerconstantcontract", a.endpoint), "application/json", responseBody)
+	url := fmt.Sprintf("%s/walletsolidity/triggerconstantcontract", a.endpoint)
+	res, err := http.Post(url, "application/json", responseBody)
 	defer res.Body.Close()
 
 	if err != nil {
@@ -89,11 +90,11 @@ func (a *Api) GetTokenDecimals(token string) (int32, error) {
 	var data TCCResponse
 	decoder := json.NewDecoder(res.Body)
 	err = decoder.Decode(&data)
-	if err != nil {
+	if err != nil || len(data.ConstantResult) == 0 {
 		return 18, err
 	}
 
-	result, err := strconv.ParseInt(trimZeroes(data.ConstantResult[0]), 10, 16)
+	result, err := strconv.ParseInt(TrimZeroes(data.ConstantResult[0]), 16, 16)
 	if err != nil {
 		return 18, err
 	}
@@ -101,9 +102,10 @@ func (a *Api) GetTokenDecimals(token string) (int32, error) {
 }
 
 func (a *Api) GetPairToken(pair string) (string, error) {
+	nA := normalizeAddress(pair)
 	postBody, _ := json.Marshal(map[string]interface{}{
 		"owner_address":     DummyCaller,
-		"contract_address":  normalizeAddress(pair),
+		"contract_address":  nA,
 		"function_selector": "tokenAddress()",
 	})
 	responseBody := bytes.NewBuffer(postBody)
@@ -119,9 +121,9 @@ func (a *Api) GetPairToken(pair string) (string, error) {
 	var data TCCResponse
 	decoder := json.NewDecoder(res.Body)
 	err = decoder.Decode(&data)
-	if err != nil {
+	if err != nil || len(data.ConstantResult) == 0 {
 		return "", err
 	}
 
-	return trimZeroes(data.ConstantResult[0]), nil
+	return TrimZeroes(data.ConstantResult[0]), nil
 }

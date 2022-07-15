@@ -54,7 +54,7 @@ func Test_trimZeroes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := trimZeroes(tt.args.address); got != tt.want {
+			if got := TrimZeroes(tt.args.address); got != tt.want {
 				t.Errorf("trimZeroes() = %v, want %v", got, tt.want)
 			}
 		})
@@ -77,10 +77,25 @@ func Test_decodeAddress(t *testing.T) {
 			},
 			want: "TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE",
 		},
+		{
+			name: "Basic case 2", // JST
+			args: args{
+				raw: "41fba3416f7aac8ea9e12b950914d592c15c884372",
+			},
+			want: "TYukBQZ2XXCcRCReAUguyXncCWNY9CEiDQ",
+		},
+		{
+			name: "Basic case 3", // USDD
+			args: args{
+				raw: "4194f24e992ca04b49c6f2a2753076ef8938ed4daa",
+			},
+			want: "TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn",
+		},
 	}
+	//fba3416f7aac8ea9e12b950914d592c15c884372
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := decodeAddress(tt.args.raw); got != tt.want {
+			if got := DecodeAddress(tt.args.raw); got != tt.want {
 				t.Errorf("decodeAddress() = %v, want %v", got, tt.want)
 			}
 		})

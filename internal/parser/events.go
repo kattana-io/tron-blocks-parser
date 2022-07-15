@@ -5,6 +5,7 @@ package parser
  */
 
 import (
+	"github.com/kattana-io/tron-blocks-parser/internal/helper"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	"github.com/kattana-io/tron-blocks-parser/pkg/tronApi"
 	"github.com/shopspring/decimal"
@@ -33,8 +34,8 @@ func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, wg *syn
 	}
 	methodId := getMethodId(log.Topics[0])
 	switch methodId {
-	case transferEvent:
-		p.onTokenTransfer(log, tx, timestamp)
+	//case transferEvent:
+	//	p.onTokenTransfer(log, tx, timestamp)
 	case tokenPurchaseEvent:
 		p.onTokenPurchase(log, tx, timestamp)
 	case trxPurchaseEvent:
@@ -49,34 +50,16 @@ func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, wg *syn
 // topics - from, to, value
 func (p *Parser) onTokenTransfer(log tronApi.Log, tx string, timestamp int64) {
 	Contract := log.Address
-	from := log.Topics[1]
-	to := log.Topics[2]
-	value := log.Topics[3]
+	from := log.Topics[0]
+	to := log.Topics[1]
+	value := log.Topics[2]
 
-	tEvent := models.TransferEvent{
-		Chain:       Chain,
-		Contract:    Contract,
-		BlockNumber: p.state.Block.Number.Uint64(),
-		Date:        time.Unix(timestamp, 0),
-		Order:       0,
-		Tx:          tx,
-		From:        from,
-		To:          to,
-		Amount:      value,
-		ValueUSD:    decimal.Decimal{},
-	}
-	p.state.AddTransferEvent(&tEvent)
-}
-
-// topics - buyer,trx_sold,tokens_bought
-func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
-	pair := log.Address
-	buyer := log.Topics[1]
-	// Dissolve pair
-	_, decimals0, _, decimals1, ok := p.GetPairTokens(pair)
+	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(Contract)
 	if !ok {
 		p.log.Error("Could not dissolve pair: onTokenPurchase")
+		return
 	}
+
 	// Normalize amounts
 	trxAmountRaw, err1 := decimal.NewFromString(log.Topics[2])
 	if err1 != nil {
@@ -88,12 +71,54 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 		p.log.Error("Could not parse amounts" + err2.Error())
 		return
 	}
+
 	// Convert to natural amounts by dropping decimals
 	trxAmount := trxAmountRaw.Div(decimal.New(1, decimals0))
 	tokenAmount := tokenAmountRaw.Div(decimal.New(1, decimals1))
 	// Calculate prices
 	priceA := tokenAmount.Div(trxAmount)
+	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
+
+	tEvent := models.TransferEvent{
+		Chain:       Chain,
+		Contract:    Contract,
+		BlockNumber: p.state.Block.Number.Uint64(),
+		Date:        time.Unix(timestamp, 0),
+		Order:       0,
+		Tx:          tx,
+		From:        from,
+		To:          to,
+		Amount:      value,
+		ValueUSD:    calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD),
+	}
+	p.state.AddTransferEvent(&tEvent)
+}
+
+// topics - buyer,trx_sold,tokens_bought
+func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
+	pair := log.Address
+	buyer := log.Topics[1]
+	// Dissolve pair
+	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(pair)
+
+	if !ok {
+		p.log.Error("Could not dissolve pair: onTokenPurchase")
+	}
+
+	// Normalize amounts
+	trxAmountRaw := helper.TronValueToDecimal(log.Topics[2])
+	tokenAmountRaw := helper.TronValueToDecimal(log.Topics[3])
+
+	// Convert to natural amounts by dropping decimals
+	trxAmount := trxAmountRaw.Div(decimal.New(1, decimals1))
+	tokenAmount := tokenAmountRaw.Div(decimal.New(1, decimals0))
+
+	// Calculate prices
+	priceA := tokenAmount.Div(trxAmount)
 	priceB := trxAmount.Div(tokenAmount)
+	tokenA58 := tronApi.DecodeAddress(tokenA)
+	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA58, tokenB, priceA)
+	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
 	swap := models.PairSwap{
 		Tx:          tx,
@@ -105,13 +130,13 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 		Amount1:     tokenAmountRaw.BigInt(),
 		Buy:         true,
 		PriceA:      priceA,
-		PriceAUSD:   decimal.Decimal{},
+		PriceAUSD:   priceAUSD,
 		PriceB:      priceB,
-		PriceBUSD:   decimal.Decimal{},
+		PriceBUSD:   priceBUSD,
 		Bot:         false,
 		Wallet:      buyer,
 		Order:       0,
-		ValueUSD:    decimal.Decimal{},
+		ValueUSD:    valueUSD,
 	}
 	p.state.AddTrade(&swap)
 }
@@ -121,29 +146,27 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	pair := log.Address
 	buyer := log.Topics[1]
 	// Dissolve pair
-	_, decimals0, _, decimals1, ok := p.GetPairTokens(pair)
+	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(pair)
 
 	if !ok {
 		p.log.Error("Could not dissolve tokens: onTrxPurchase")
 		return
 	}
 	// Normalize amounts
-	tokenAmountRaw, err2 := decimal.NewFromString(log.Topics[2])
-	if err2 != nil {
-		p.log.Error("Could not parse amounts" + err2.Error())
-		return
-	}
-	trxAmountRaw, err1 := decimal.NewFromString(log.Topics[3])
-	if err1 != nil {
-		p.log.Error("Could not parse amounts" + err1.Error())
-		return
-	}
+	tokenAmountRaw := helper.TronValueToDecimal(log.Topics[2])
+	trxAmountRaw := helper.TronValueToDecimal(log.Topics[3])
+
 	// Convert to natural amounts by dropping decimals
-	tokenAmount := tokenAmountRaw.Div(decimal.New(1, decimals1))
-	trxAmount := trxAmountRaw.Div(decimal.New(1, decimals0))
+	tokenAmount := tokenAmountRaw.Div(decimal.New(1, decimals0))
+	trxAmount := trxAmountRaw.Div(decimal.New(1, decimals1))
+
 	// Calculate prices
 	priceA := tokenAmount.Div(trxAmount)
 	priceB := trxAmount.Div(tokenAmount)
+	tokenA58 := tronApi.DecodeAddress(tokenA)
+
+	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA58, tokenB, priceA)
+	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
 	swap := models.PairSwap{
 		Tx:          tx,
@@ -155,15 +178,25 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 		Amount1:     tokenAmountRaw.BigInt(),
 		Buy:         false,
 		PriceA:      priceA,
-		PriceAUSD:   decimal.Decimal{},
+		PriceAUSD:   priceAUSD,
 		PriceB:      priceB,
-		PriceBUSD:   decimal.Decimal{},
+		PriceBUSD:   priceBUSD,
 		Bot:         false,
 		Wallet:      buyer,
 		Order:       0,
-		ValueUSD:    decimal.Decimal{},
+		ValueUSD:    valueUSD,
 	}
 	p.state.AddTrade(&swap)
+}
+
+func calculateValueUSD(amount0 decimal.Decimal, amount1 decimal.Decimal, ausd decimal.Decimal, busd decimal.Decimal) decimal.Decimal {
+	if !ausd.IsZero() {
+		return amount0.Mul(ausd)
+	}
+	if !busd.IsZero() {
+		return amount1.Mul(busd)
+	}
+	return decimal.NewFromInt(0)
 }
 
 // Sync events to sync liquidity

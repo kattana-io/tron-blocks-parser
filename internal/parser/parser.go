@@ -2,7 +2,9 @@ package parser
 
 import (
 	"context"
+	"github.com/kattana-io/tron-blocks-parser/internal/abi"
 	"github.com/kattana-io/tron-blocks-parser/internal/cache"
+	"github.com/kattana-io/tron-blocks-parser/internal/converters"
 	"github.com/kattana-io/tron-blocks-parser/internal/integrations"
 	"github.com/kattana-io/tron-blocks-parser/internal/intermediate"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
@@ -14,13 +16,15 @@ import (
 )
 
 type Parser struct {
-	api        *tronApi.Api
-	log        *zap.Logger
-	failedTx   []string
-	txMap      map[string]*tronApi.GetTransactionInfoByIdResp
-	state      *State
-	tokenLists *integrations.TokenListsProvider
-	pairsCache *cache.PairsCache
+	api           *tronApi.Api
+	log           *zap.Logger
+	failedTx      []string
+	txMap         map[string]*tronApi.GetTransactionInfoByIdResp
+	state         *State
+	tokenLists    *integrations.TokenListsProvider
+	pairsCache    *cache.PairsCache
+	fiatConverter *converters.FiatConverter
+	abiHolder     *abi.Holder
 }
 
 // Parse - parse single block
@@ -38,6 +42,8 @@ func (p *Parser) Parse(block models.Block) bool {
 	for _, transaction := range resp.Transactions {
 		p.parseTransaction(transaction)
 	}
+	// save prices
+	p.fiatConverter.Commit()
 	return true
 }
 
@@ -93,7 +99,7 @@ func (p *Parser) GetCachePairToken(address string) (string, int32, bool) {
 func (p *Parser) GetPairTokens(address string) (string, int32, string, int32, bool) {
 	adr, decimals, ok := p.GetCachePairToken(address)
 	if ok {
-		return adr, int32(decimals), trxTokenAddress, trxDecimals, true
+		return adr, decimals, trxTokenAddress, trxDecimals, true
 	}
 
 	// Cache miss
@@ -103,7 +109,7 @@ func (p *Parser) GetPairTokens(address string) (string, int32, string, int32, bo
 		return token, cachedDecimals, trxTokenAddress, trxDecimals, true
 	}
 
-	dec, err := p.api.GetTokenDecimals(address)
+	dec, err := p.api.GetTokenDecimals(token)
 	if err != nil {
 		p.log.Error("GetPairTokens: " + err.Error())
 		dec = 18
@@ -120,13 +126,15 @@ func (p *Parser) GetEncodedBlock() []byte {
 	return b
 }
 
-func New(api *tronApi.Api, log *zap.Logger, lists *integrations.TokenListsProvider, pairsCache *cache.PairsCache) *Parser {
+func New(api *tronApi.Api, log *zap.Logger, lists *integrations.TokenListsProvider, pairsCache *cache.PairsCache, converter *converters.FiatConverter, abiHolder *abi.Holder) *Parser {
 	return &Parser{
-		api:        api,
-		log:        log,
-		failedTx:   []string{},
-		txMap:      make(map[string]*tronApi.GetTransactionInfoByIdResp),
-		tokenLists: lists,
-		pairsCache: pairsCache,
+		fiatConverter: converter,
+		api:           api,
+		log:           log,
+		failedTx:      []string{},
+		txMap:         make(map[string]*tronApi.GetTransactionInfoByIdResp),
+		tokenLists:    lists,
+		pairsCache:    pairsCache,
+		abiHolder:     abiHolder,
 	}
 }

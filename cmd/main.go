@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/goccy/go-json"
+	"github.com/kattana-io/tron-blocks-parser/internal/abi"
 	"github.com/kattana-io/tron-blocks-parser/internal/cache"
+	"github.com/kattana-io/tron-blocks-parser/internal/converters"
 	"github.com/kattana-io/tron-blocks-parser/internal/integrations"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	"github.com/kattana-io/tron-blocks-parser/internal/parser"
@@ -23,6 +25,7 @@ func main() {
 	 */
 	runner := runway.Create()
 	logger := runner.Logger()
+	abiHolder := abi.Create(logger)
 	registerCommandLineFlags(logger)
 	mode, topic := getRunningMode()
 	redis := runner.Redis()
@@ -48,8 +51,8 @@ func main() {
 		/**
 		 * Process block
 		 */
-		//fiatConverter := parser.NewFiatConverter(redis, logger, block.Number)
-		p := parser.New(api, logger, tokenLists, pairsCache)
+		fiatConverter := converters.CreateConverter(redis, logger, &block)
+		p := parser.New(api, logger, tokenLists, pairsCache, fiatConverter, abiHolder)
 		ok := p.Parse(block)
 		if ok {
 			publisher.PublishBlock(context.Background(), p.GetEncodedBlock())
