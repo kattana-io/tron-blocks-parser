@@ -3,7 +3,6 @@ package tronApi
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
@@ -57,7 +56,7 @@ func (a *Api) GetBlockByNum(number int32) (*GetBlockByNumResp, error) {
 	})
 	responseBody := bytes.NewBuffer(postBody)
 
-	res, err := http.Post(fmt.Sprintf("%s/walletsolidity/getblockbynum", a.endpoint), "application/json", responseBody)
+	res, err := http.Post(a.provider.GetBlockByNum(), "application/json", responseBody)
 	defer res.Body.Close()
 
 	if err != nil {

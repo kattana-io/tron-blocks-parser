@@ -3,7 +3,6 @@ package tronApi
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
@@ -35,10 +34,11 @@ func (a *Api) GetTransactionInfoById(id string) (*GetTransactionInfoByIdResp, er
 	})
 	responseBody := bytes.NewBuffer(postBody)
 
-	res, err := http.Post(fmt.Sprintf("%s/walletsolidity/gettransactioninfobyid", a.endpoint), "application/json", responseBody)
+	res, err := http.Post(a.provider.GetTransactionInfoById(), "application/json", responseBody)
 	defer res.Body.Close()
 
 	if err != nil {
+		a.log.Warn("Could not load tx: " + id)
 		a.log.Error(err.Error())
 		return &GetTransactionInfoByIdResp{}, err
 	}
@@ -47,6 +47,7 @@ func (a *Api) GetTransactionInfoById(id string) (*GetTransactionInfoByIdResp, er
 	decoder := json.NewDecoder(res.Body)
 	err = decoder.Decode(&data)
 	if err != nil {
+		a.log.Warn("Could not load tx: " + id)
 		return &GetTransactionInfoByIdResp{}, err
 	}
 

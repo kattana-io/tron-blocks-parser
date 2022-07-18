@@ -97,7 +97,7 @@ func (p *Parser) onTokenTransfer(log tronApi.Log, tx string, timestamp int64) {
 // topics - buyer,trx_sold,tokens_bought
 func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 	pair := log.Address
-	buyer := log.Topics[1]
+	buyer := tronApi.TrimZeroes(log.Topics[1])
 	// Dissolve pair
 	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(pair)
 
@@ -114,8 +114,8 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 	tokenAmount := tokenAmountRaw.Div(decimal.New(1, decimals0))
 
 	// Calculate prices
-	priceA := tokenAmount.Div(trxAmount)
-	priceB := trxAmount.Div(tokenAmount)
+	priceA := trxAmount.Div(tokenAmount)
+	priceB := tokenAmount.Div(trxAmount)
 	tokenA58 := tronApi.DecodeAddress(tokenA)
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA58, tokenB, priceA)
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
@@ -144,7 +144,7 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 // topics - buyer, tokens_sold, trx_bought
 func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	pair := log.Address
-	buyer := log.Topics[1]
+	buyer := tronApi.TrimZeroes(log.Topics[1])
 	// Dissolve pair
 	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(pair)
 
@@ -161,8 +161,8 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	trxAmount := trxAmountRaw.Div(decimal.New(1, decimals1))
 
 	// Calculate prices
-	priceA := tokenAmount.Div(trxAmount)
-	priceB := trxAmount.Div(tokenAmount)
+	priceA := trxAmount.Div(tokenAmount)
+	priceB := tokenAmount.Div(trxAmount)
 	tokenA58 := tronApi.DecodeAddress(tokenA)
 
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA58, tokenB, priceA)
@@ -209,7 +209,7 @@ func (p *Parser) onPairSnapshot(log tronApi.Log) {
 // topics - exchange, token
 func (p *Parser) onPairCreated(log tronApi.Log, tx string, timestamp int64) {
 	factory := log.Address
-	pair := log.Topics[1]
+	pair := tronApi.TrimZeroes(log.Topics[1])
 	//token := log.Topics[2]
 	p.state.RegisterNewPair(factory, pair, "sunswap", Chain, "", time.Unix(timestamp, 0))
 }
