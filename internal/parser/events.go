@@ -10,6 +10,7 @@ import (
 	"github.com/kattana-io/tron-blocks-parser/pkg/tronApi"
 	"github.com/shopspring/decimal"
 	"math/big"
+	"os"
 	"sync"
 	"time"
 )
@@ -209,9 +210,10 @@ func (p *Parser) onPairSnapshot(log tronApi.Log) {
 // topics - exchange, token
 func (p *Parser) onPairCreated(log tronApi.Log, tx string, timestamp int64) {
 	factory := log.Address
-	pair := log.Topics[1]
-	//token := log.Topics[2]
-	p.state.RegisterNewPair(factory, pair, "sunswap", Chain, "", time.Unix(timestamp, 0))
+	pair := tronApi.TrimZeroes(log.Topics[2])
+	//token := log.Topics[1]
+	nodeUrl := os.Getenv("SOLIDITY_FULL_NODE_URL")
+	p.state.RegisterNewPair(factory, pair, "sunswap", Chain, nodeUrl, time.Unix(timestamp, 0))
 }
 
 // convert "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" -> 0xddf252ad
