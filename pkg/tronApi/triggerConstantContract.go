@@ -2,7 +2,6 @@ package tronApi
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/goccy/go-json"
 	"net/http"
 	"strconv"
@@ -52,7 +51,7 @@ func (a *Api) TriggerConstantContract(contractAddress string, functionSelector s
 	})
 	responseBody := bytes.NewBuffer(postBody)
 
-	res, err := http.Post(fmt.Sprintf("%s/walletsolidity/triggerconstantcontract", a.endpoint), "application/json", responseBody)
+	res, err := http.Post(a.provider.TriggerConstantContract(), "application/json", responseBody)
 	defer res.Body.Close()
 
 	if err != nil {
@@ -71,15 +70,15 @@ func (a *Api) TriggerConstantContract(contractAddress string, functionSelector s
 }
 
 func (a *Api) GetTokenDecimals(token string) (int32, error) {
+	nA := normalizeAddress(token)
 	postBody, _ := json.Marshal(map[string]interface{}{
 		"owner_address":     DummyCaller,
-		"contract_address":  token,
+		"contract_address":  nA,
 		"function_selector": "decimals()",
 	})
 	responseBody := bytes.NewBuffer(postBody)
 
-	url := fmt.Sprintf("%s/walletsolidity/triggerconstantcontract", a.endpoint)
-	res, err := http.Post(url, "application/json", responseBody)
+	res, err := http.Post(a.provider.TriggerConstantContract(), "application/json", responseBody)
 	defer res.Body.Close()
 
 	if err != nil {
@@ -110,7 +109,7 @@ func (a *Api) GetPairToken(pair string) (string, error) {
 	})
 	responseBody := bytes.NewBuffer(postBody)
 
-	res, err := http.Post(fmt.Sprintf("%s/walletsolidity/triggerconstantcontract", a.endpoint), "application/json", responseBody)
+	res, err := http.Post(a.provider.TriggerConstantContract(), "application/json", responseBody)
 	defer res.Body.Close()
 
 	if err != nil {
