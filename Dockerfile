@@ -3,6 +3,7 @@ FROM golang:1.18-alpine AS gobuild
 WORKDIR /build
 COPY cmd ./cmd
 COPY internal ./internal
+COPY pkg ./pkg
 COPY go.mod go.sum ./
 RUN apk --no-cache add git mercurial ca-certificates
 RUN go mod download
