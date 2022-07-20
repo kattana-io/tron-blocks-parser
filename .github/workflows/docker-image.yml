@@ -1,0 +1,30 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+    container: docker:latest
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: apk update && apk add --no-cache py-pip jq
+    - name: Install docker-compose
+      run: pip install docker-compose==1.12.0
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build the Docker image
+      run: docker build -t ghcr.io/kattana-io/tron-blocks-parser .
+    - name: Push to registry
+      run: docker push ghcr.io/kattana-io/tron-blocks-parser:latest
