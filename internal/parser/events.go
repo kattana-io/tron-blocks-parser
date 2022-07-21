@@ -114,6 +114,10 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 	trxAmount := trxAmountRaw.Div(decimal.New(1, decimals1))
 	tokenAmount := tokenAmountRaw.Div(decimal.New(1, decimals0))
 
+	if tokenAmount.IsZero() || trxAmount.IsZero() {
+		p.log.Warn("Skipping division by zero")
+		return
+	}
 	// Calculate prices
 	priceA := trxAmount.Div(tokenAmount)
 	priceB := tokenAmount.Div(trxAmount)
@@ -160,6 +164,11 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	// Convert to natural amounts by dropping decimals
 	tokenAmount := tokenAmountRaw.Div(decimal.New(1, decimals0))
 	trxAmount := trxAmountRaw.Div(decimal.New(1, decimals1))
+
+	if tokenAmount.IsZero() || trxAmount.IsZero() {
+		p.log.Warn("Skipping division by zero")
+		return
+	}
 
 	// Calculate prices
 	priceA := trxAmount.Div(tokenAmount)
