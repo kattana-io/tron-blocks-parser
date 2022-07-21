@@ -66,7 +66,8 @@ func (p *Parser) parseTransaction(transaction tronApi.Transaction) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(resp.Log))
 	for _, log := range resp.Log {
-		go p.processLog(log, transaction.TxID, transaction.RawData.Timestamp, &wg)
+		t := transaction.RawData.Timestamp / 1000
+		go p.processLog(log, transaction.TxID, t, &wg)
 	}
 	wg.Wait()
 }
