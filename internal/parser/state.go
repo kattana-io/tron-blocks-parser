@@ -53,14 +53,13 @@ func (i *State) RegisterNewPair(Factory string, Pair string, Klass string, netwo
 	i.pairsLock.Lock()
 	defer i.pairsLock.Unlock()
 
-	poolCreated := time.Unix() / 1000
 	i.Pairs = append(i.Pairs, &models.NewPair{
 		Factory:     Factory,
 		Pair:        Pair,
 		Klass:       Klass,
 		Network:     network,
 		Node:        node,
-		PoolCreated: poolCreated,
+		PoolCreated: time.Unix(),
 	})
 }
 
