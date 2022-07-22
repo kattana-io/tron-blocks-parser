@@ -1,9 +1,7 @@
 package tronApi
 
 import (
-	"bytes"
 	"encoding/json"
-	"net/http"
 )
 
 type GetBlockByNumResp struct {
@@ -54,9 +52,8 @@ func (a *Api) GetBlockByNum(number int32) (*GetBlockByNumResp, error) {
 	postBody, _ := json.Marshal(map[string]interface{}{
 		"num": number,
 	})
-	responseBody := bytes.NewBuffer(postBody)
 
-	res, err := http.Post(a.provider.GetBlockByNum(), "application/json", responseBody)
+	res, err := a.provider.Request(a.provider.GetBlockByNum(), postBody)
 	defer res.Body.Close()
 
 	if err != nil {
