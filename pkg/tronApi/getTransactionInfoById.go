@@ -1,9 +1,7 @@
 package tronApi
 
 import (
-	"bytes"
 	"encoding/json"
-	"net/http"
 )
 
 type GetTransactionInfoByIdResp struct {
@@ -32,9 +30,8 @@ func (a *Api) GetTransactionInfoById(id string) (*GetTransactionInfoByIdResp, er
 	postBody, _ := json.Marshal(map[string]interface{}{
 		"value": id,
 	})
-	responseBody := bytes.NewBuffer(postBody)
 
-	res, err := http.Post(a.provider.GetTransactionInfoById(), "application/json", responseBody)
+	res, err := a.provider.Request(a.provider.GetTransactionInfoById(), postBody)
 	defer res.Body.Close()
 
 	if err != nil {

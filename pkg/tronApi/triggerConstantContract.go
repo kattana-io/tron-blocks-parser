@@ -1,9 +1,7 @@
 package tronApi
 
 import (
-	"bytes"
 	"github.com/goccy/go-json"
-	"net/http"
 	"strconv"
 )
 
@@ -49,9 +47,8 @@ func (a *Api) TriggerConstantContract(contractAddress string, functionSelector s
 		"function_selector": functionSelector,
 		"parameter":         parameter,
 	})
-	responseBody := bytes.NewBuffer(postBody)
 
-	res, err := http.Post(a.provider.TriggerConstantContract(), "application/json", responseBody)
+	res, err := a.provider.Request(a.provider.TriggerConstantContract(), postBody)
 	defer res.Body.Close()
 
 	if err != nil {
@@ -76,9 +73,8 @@ func (a *Api) GetTokenDecimals(token string) (int32, error) {
 		"contract_address":  nA,
 		"function_selector": "decimals()",
 	})
-	responseBody := bytes.NewBuffer(postBody)
 
-	res, err := http.Post(a.provider.TriggerConstantContract(), "application/json", responseBody)
+	res, err := a.provider.Request(a.provider.TriggerConstantContract(), postBody)
 	defer res.Body.Close()
 
 	if err != nil {
@@ -107,9 +103,8 @@ func (a *Api) GetPairToken(pair string) (string, error) {
 		"contract_address":  nA,
 		"function_selector": "tokenAddress()",
 	})
-	responseBody := bytes.NewBuffer(postBody)
 
-	res, err := http.Post(a.provider.TriggerConstantContract(), "application/json", responseBody)
+	res, err := a.provider.Request(a.provider.TriggerConstantContract(), postBody)
 	defer res.Body.Close()
 
 	if err != nil {
