@@ -117,7 +117,7 @@ func (p *Parser) GetPairTokens(address string) (string, int32, string, int32, bo
 	dec, err := p.api.GetTokenDecimals(token)
 	if err != nil {
 		p.log.Error("GetPairTokens: " + err.Error())
-		dec = 18
+		return "", 0, trxTokenAddress, trxDecimals, false
 	}
 	return token, dec, trxTokenAddress, trxDecimals, true
 }

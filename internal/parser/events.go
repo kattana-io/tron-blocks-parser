@@ -101,6 +101,8 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 	buyer := tronApi.TrimZeroes(log.Topics[1])
 	// Dissolve pair
 	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(pair)
+	tokenA58 := tronApi.DecodeAddress(tokenA)
+	pair58 := tronApi.DecodeAddress(pair)
 
 	if !ok {
 		p.log.Error("Could not dissolve pair: onTokenPurchase")
@@ -121,7 +123,7 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 	// Calculate prices
 	priceA := trxAmount.Div(tokenAmount)
 	priceB := tokenAmount.Div(trxAmount)
-	tokenA58 := tronApi.DecodeAddress(tokenA)
+
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA58, tokenB, priceA)
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
@@ -130,7 +132,7 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 		Date:        time.Unix(timestamp, 0),
 		Chain:       Chain,
 		BlockNumber: p.state.Block.Number.Uint64(),
-		Pair:        tronApi.DecodeAddress(pair),
+		Pair:        pair58,
 		Amount0:     trxAmountRaw.BigInt(),
 		Amount1:     tokenAmountRaw.BigInt(),
 		Buy:         true,
@@ -152,6 +154,8 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	buyer := tronApi.TrimZeroes(log.Topics[1])
 	// Dissolve pair
 	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(pair)
+	tokenA58 := tronApi.DecodeAddress(tokenA)
+	pair58 := tronApi.DecodeAddress(pair)
 
 	if !ok {
 		p.log.Error("Could not dissolve tokens: onTrxPurchase")
@@ -173,7 +177,6 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	// Calculate prices
 	priceA := trxAmount.Div(tokenAmount)
 	priceB := tokenAmount.Div(trxAmount)
-	tokenA58 := tronApi.DecodeAddress(tokenA)
 
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA58, tokenB, priceA)
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
@@ -183,7 +186,7 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 		Date:        time.Unix(timestamp, 0),
 		Chain:       Chain,
 		BlockNumber: p.state.Block.Number.Uint64(),
-		Pair:        tronApi.DecodeAddress(pair),
+		Pair:        pair58,
 		Amount0:     trxAmountRaw.BigInt(),
 		Amount1:     tokenAmountRaw.BigInt(),
 		Buy:         false,
