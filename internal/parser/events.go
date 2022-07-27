@@ -42,7 +42,7 @@ func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, wg *syn
 	case trxPurchaseEvent:
 		p.onTrxPurchase(log, tx, timestamp)
 	case snapshotEvent:
-		p.onPairSnapshot(log)
+		p.onPairSnapshot(log, tx, timestamp)
 	case listingEvent:
 		p.onPairCreated(log, tx, timestamp)
 	}
@@ -212,10 +212,56 @@ func calculateValueUSD(amount0 decimal.Decimal, amount1 decimal.Decimal, ausd de
 	return decimal.NewFromInt(0)
 }
 
-// Sync events to sync liquidity
+// Snapshot event to sync liquidity
 // topics - operator, trx_balance, token_balance
-func (p *Parser) onPairSnapshot(log tronApi.Log) {
+func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
+	pair := log.Address
+	operator := tronApi.TrimZeroes(log.Topics[1])
 
+	// Dissolve pair
+	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(pair)
+	tokenA58 := tronApi.DecodeAddress(tokenA)
+	pair58 := tronApi.DecodeAddress(pair)
+
+	if !ok {
+		p.log.Error("Could not dissolve tokens: onTrxPurchase")
+		return
+	}
+	// Normalize amounts
+	trxAmountRaw := helper.TronValueToDecimal(log.Topics[2])
+	tokenAmountRaw := helper.TronValueToDecimal(log.Topics[3])
+
+	// Convert to natural amounts by dropping decimals
+	tokenAmount := tokenAmountRaw.Div(decimal.New(1, decimals0))
+	trxAmount := trxAmountRaw.Div(decimal.New(1, decimals1))
+
+	if tokenAmount.IsZero() || trxAmount.IsZero() {
+		p.log.Warn("Skipping division by zero")
+		return
+	}
+
+	// Calculate prices
+	priceA := trxAmount.Div(tokenAmount)
+
+	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA58, tokenB, priceA)
+	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
+
+	syncEvent := models.LiquidityEvent{
+		BlockNumber: p.state.Block.Number.Uint64(),
+		Date:        time.Unix(timestamp, 0),
+		Tx:          tx,
+		Pair:        pair58,
+		Chain:       Chain,
+		Klass:       "sync",
+		Wallet:      tronApi.DecodeAddress(operator),
+		Order:       0,
+		Reserve0:    tokenAmountRaw.String(),
+		Reserve1:    trxAmountRaw.String(),
+		Price:       priceA,
+		PriceUSD:    priceAUSD,
+		ReserveUSD:  valueUSD,
+	}
+	p.state.AddLiquidity(&syncEvent)
 }
 
 // onPairCreated - handle listing event
