@@ -215,6 +215,10 @@ func calculateValueUSD(amount0 decimal.Decimal, amount1 decimal.Decimal, ausd de
 // Snapshot event to sync liquidity
 // topics - operator, trx_balance, token_balance
 func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
+	if len(log.Topics) != 4 {
+		p.log.Error("onPairSnapshot: Invalid length of topics")
+		return
+	}
 	pair := log.Address
 	operator := tronApi.TrimZeroes(log.Topics[1])
 
