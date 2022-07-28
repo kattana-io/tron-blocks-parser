@@ -85,12 +85,19 @@ func (p *Parser) GetCachePairToken(address string) (string, int32, bool) {
 			p.log.Error("GetCachePairToken: " + err.Error())
 			return "", 0, false
 		}
-		decimals, err := p.api.GetTokenDecimals(tokenAddress)
-		if err != nil {
-			p.log.Error("GetCachePairToken: GetTokenDecimals: " + err.Error())
-			return "", 0, false
+		// Check list
+		decimals, ok := p.tokenLists.GetDecimals(tokenAddress)
+		if ok {
+			pInstance.SetToken(tokenAddress, decimals)
+		} else {
+			// Call API
+			decimals, err := p.api.GetTokenDecimals(tokenAddress)
+			if err != nil {
+				p.log.Error("GetCachePairToken: GetTokenDecimals: " + err.Error())
+				return "", 0, false
+			}
+			pInstance.SetToken(tokenAddress, decimals)
 		}
-		pInstance.SetToken(tokenAddress, decimals)
 		err = p.pairsCache.Store(context.Background(), address, pInstance, time.Hour*2)
 		if err != nil {
 			p.log.Error("Could not put into cache: " + err.Error())
