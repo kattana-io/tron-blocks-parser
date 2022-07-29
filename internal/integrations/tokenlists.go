@@ -35,7 +35,7 @@ type TokenList struct {
 
 const url = "https://list.justswap.link/justswap.json"
 
-func fetch() (data *TokenList, err error) {
+func fetch() (*TokenList, error) {
 	res, err := http.Get(url)
 	defer res.Body.Close()
 
@@ -43,13 +43,14 @@ func fetch() (data *TokenList, err error) {
 		return nil, err
 	}
 
+	data := TokenList{}
 	decoder := json.NewDecoder(res.Body)
-	err = decoder.Decode(data)
+	err = decoder.Decode(&data)
 	if err != nil {
 		return nil, err
 	}
 
-	return data, err
+	return &data, err
 }
 
 type TokenListsProvider struct {
