@@ -233,3 +233,12 @@ func (f *FiatConverter) readPreviousBlockPricesFromCache() bool {
 	f.Prices = cached.Prices
 	return true
 }
+
+func (f *FiatConverter) UpdateTokenUSDPrice(address string, price decimal.Decimal) {
+	f.ratesMutex.Lock()
+	defer f.ratesMutex.Unlock()
+
+	if !f.isTokenStable(address) {
+		f.Prices[address] = price
+	}
+}

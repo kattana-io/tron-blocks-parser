@@ -248,6 +248,8 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 	priceA := trxAmount.Div(tokenAmount)
 
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA58, tokenB, priceA)
+	p.fiatConverter.UpdateTokenUSDPrice(tokenA58, priceAUSD)
+	p.fiatConverter.UpdateTokenUSDPrice(trxTokenAddress, priceBUSD)
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
 	syncEvent := models.LiquidityEvent{
