@@ -2,9 +2,12 @@ package tronApi
 
 import (
 	"encoding/json"
+	"errors"
 )
 
 type GetTransactionInfoByIdResp struct {
+	Error string `json:"Error"`
+
 	Id              string   `json:"id"`
 	Fee             int      `json:"fee"`
 	BlockNumber     int      `json:"blockNumber"`
@@ -46,6 +49,10 @@ func (a *Api) GetTransactionInfoById(id string) (*GetTransactionInfoByIdResp, er
 	if err != nil {
 		a.log.Warn("Could not load tx: " + id)
 		return &GetTransactionInfoByIdResp{}, err
+	}
+
+	if data.Error != "" {
+		return nil, errors.New(" got error during tx call: " + data.Error)
 	}
 
 	return &data, nil
