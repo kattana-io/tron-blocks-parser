@@ -18,7 +18,7 @@ import (
 type Parser struct {
 	api           *tronApi.Api
 	log           *zap.Logger
-	failedTx      []string
+	failedTx      []tronApi.Transaction
 	txMap         map[string]*tronApi.GetTransactionInfoByIdResp
 	state         *State
 	tokenLists    *integrations.TokenListsProvider
@@ -46,6 +46,12 @@ func (p *Parser) Parse(block models.Block) bool {
 			p.log.Info("Skipping tx without contract call: " + transaction.TxID)
 		}
 	}
+
+	if len(p.failedTx) > 0 {
+		for _, tx := range p.failedTx {
+			p.parseTransaction(tx)
+		}
+	}
 	// save prices
 	p.fiatConverter.Commit()
 	return true
@@ -57,11 +63,12 @@ func (p *Parser) parseTransaction(transaction tronApi.Transaction) {
 	resp, err := p.api.GetTransactionInfoById(transaction.TxID)
 	if err != nil {
 		p.log.Error("parseTransaction: " + err.Error())
-		p.failedTx = append(p.failedTx, transaction.TxID)
+		p.failedTx = append(p.failedTx, transaction)
 		return
 	}
 	// Populate cache
 	p.txMap[transaction.TxID] = resp
+
 	// Process logs
 	wg := sync.WaitGroup{}
 	wg.Add(len(resp.Log))
@@ -143,7 +150,7 @@ func New(api *tronApi.Api, log *zap.Logger, lists *integrations.TokenListsProvid
 		fiatConverter: converter,
 		api:           api,
 		log:           log,
-		failedTx:      []string{},
+		failedTx:      []tronApi.Transaction{},
 		txMap:         make(map[string]*tronApi.GetTransactionInfoByIdResp),
 		tokenLists:    lists,
 		pairsCache:    pairsCache,
