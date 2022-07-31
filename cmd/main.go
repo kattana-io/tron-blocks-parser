@@ -49,6 +49,14 @@ func main() {
 			return false
 		}
 		/**
+		 * Check for valid block number
+		 * Why we can have 0 here? Invalid value in JSON
+		 */
+		if block.Number.Int64() == 0 {
+			logger.Info("Received null block number, skipping")
+			return true
+		}
+		/**
 		 * Process block
 		 */
 		fiatConverter := converters.CreateConverter(redis, logger, &block)
