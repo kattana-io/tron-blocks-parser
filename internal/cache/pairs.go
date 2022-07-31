@@ -54,6 +54,13 @@ func (p PairsCache) Value(ctx context.Context, address string) (*intermediate.Pa
 	return data, nil
 }
 
+func (p *PairsCache) Warmup(pairs []intermediate.Pair) {
+	for _, pair := range pairs {
+		p.Store(context.Background(), pair.Address, pair, time.Hour*2)
+	}
+	p.log.Info(fmt.Sprintf("Added %d pairs", len(pairs)))
+}
+
 func NewPairsCache(redis *redis.Client, log *zap.Logger) *PairsCache {
 	return &PairsCache{
 		redis: redis,
