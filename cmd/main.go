@@ -34,6 +34,7 @@ func main() {
 	api := createApi(logger)
 	tokenLists := integrations.NewTokensListProvider(logger)
 	pairsCache := cache.NewPairsCache(redis, logger)
+	shouldWarmupCache(pairsCache)
 
 	logger.Info(fmt.Sprintf("Start parser in %s mode", mode))
 	publisher := transport.NewPublisher("parser.sys.parsed", os.Getenv("KAFKA"), logger)
@@ -74,6 +75,19 @@ func main() {
 		logger.Fatal("failed to close reader: " + err.Error())
 	})
 	t.Listen()
+}
+
+// Check if we should fill cache for dev purpose
+func shouldWarmupCache(pairsCache *cache.PairsCache) {
+	warmupFlag := os.Getenv("PAIRS_WARMUP")
+	warmup := warmupFlag == "true"
+
+	if warmup {
+		ssa := integrations.NewSunswapStatisticsAdapter()
+		if ssa.Ok {
+			pairsCache.Warmup(ssa.TokenPairs)
+		}
+	}
 }
 
 func createApi(logger *zap.Logger) *tronApi.Api {
