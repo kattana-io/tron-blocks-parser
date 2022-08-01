@@ -40,10 +40,8 @@ func (p *Parser) Parse(block models.Block) bool {
 	p.log.Info("Parsing block: " + block.Number.String())
 
 	for _, transaction := range resp.Transactions {
-		if len(transaction.RawData.Contract) > 1 || transaction.RawData.Contract[0].Type != "TransferContract" {
+		if isSuccessCall(&transaction) && hasContractCalls(&transaction) && isNotTransferCall(&transaction) {
 			p.parseTransaction(transaction)
-		} else {
-			p.log.Info("Skipping tx without contract call: " + transaction.TxID)
 		}
 	}
 
@@ -55,6 +53,24 @@ func (p *Parser) Parse(block models.Block) bool {
 	// save prices
 	p.fiatConverter.Commit()
 	return true
+}
+
+// hasContractCalls - trading events are always contract calls
+func hasContractCalls(transaction *tronApi.Transaction) bool {
+	return len(transaction.RawData.Contract) >= 1
+}
+
+// isNotTransferCall - We don't need transfer events for trading
+func isNotTransferCall(transaction *tronApi.Transaction) bool {
+	return transaction.RawData.Contract[0].Type != "TransferContract"
+}
+
+// isSuccessCall- Do not download failed transactions
+func isSuccessCall(transaction *tronApi.Transaction) bool {
+	if len(transaction.Ret) < 1 {
+		return false
+	}
+	return transaction.Ret[0].ContractRet == "SUCCESS"
 }
 
 // parseTransaction - process single transactions
