@@ -15,5 +15,6 @@ RUN apk add tzdata
 RUN echo "UTC" > /etc/timezone
 WORKDIR /root/
 COPY --from=gobuild /build/.bin/app .
+COPY --from=gobuild /build/quotes.json .
 EXPOSE 8080
 CMD ["./app"]
