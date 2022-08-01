@@ -40,7 +40,7 @@ func (p *Parser) Parse(block models.Block) bool {
 	p.log.Info("Parsing block: " + block.Number.String())
 
 	for _, transaction := range resp.Transactions {
-		if isSuccessCall(&transaction) && hasContractCalls(&transaction) && isNotTransferCall(&transaction) {
+		if isSuccessCall(&transaction) || hasContractCalls(&transaction) || isNotTransferCall(&transaction) {
 			p.parseTransaction(transaction)
 		}
 	}
