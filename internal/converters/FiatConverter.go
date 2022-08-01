@@ -68,6 +68,10 @@ func CreateConverter(client *redis.Client, log *zap.Logger, block *models.Block)
 		converter.supported[quote.Token] = true
 	}
 
+	if block.Notify {
+		converter.readLastPrices()
+	}
+
 	converter.readPreviousBlockPricesFromCache()
 	return converter
 }
@@ -158,6 +162,10 @@ func (f *FiatConverter) ConvertAB(tokenA string, tokenB string, price decimal.De
 }
 
 func (f *FiatConverter) Commit() {
+	// Update live
+	f.writeLastPrices()
+
+	// Update block prices
 	b, _ := json.Marshal(f)
 
 	key := cacheKey(f.block.Network, f.block.Number.String())
