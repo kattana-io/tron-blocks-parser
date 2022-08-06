@@ -163,7 +163,9 @@ func (f *FiatConverter) ConvertAB(tokenA string, tokenB string, price decimal.De
 
 func (f *FiatConverter) Commit() {
 	// Update live
-	f.writeLastPrices()
+	if f.block.Notify {
+		f.writeLastPrices()
+	}
 
 	// Update block prices
 	b, _ := json.Marshal(f)
