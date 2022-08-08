@@ -28,6 +28,7 @@ const trxPurchaseEvent = 0xdad9ec5c
 const snapshotEvent = 0xcc7244d3
 const listingEvent = 0x9d42cb01
 const jmListingEvent = 0x0d3648bd
+const jmUniv2SwapEvent = 0xd78ad95f
 
 func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, wg *sync.WaitGroup) {
 	defer wg.Done()
@@ -48,6 +49,8 @@ func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, wg *syn
 		p.onPairCreated(log, tx, timestamp)
 	case jmListingEvent:
 		p.onJmPairCreated(log, tx, timestamp)
+	case jmUniv2SwapEvent:
+		p.onJmSwapEvent(log, tx, timestamp)
 	}
 }
 

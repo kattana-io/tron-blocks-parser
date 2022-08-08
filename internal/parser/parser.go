@@ -9,6 +9,7 @@ import (
 	"github.com/kattana-io/tron-blocks-parser/internal/intermediate"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
+	justmoney "github.com/kattana-io/tron-objects-api/pkg/justomoney"
 	"github.com/vmihailenco/msgpack/v5"
 	"go.uber.org/zap"
 	"sync"
@@ -151,6 +152,41 @@ func (p *Parser) GetPairTokens(address *tronApi.Address) (string, int32, string,
 		return "", 0, trxTokenAddress, trxDecimals, false
 	}
 	return tokenAddr.ToBase58(), dec, trxTokenAddress, trxDecimals, true
+}
+
+// TODO: Add cache to avoid calls
+// GetUniv2PairTokens - Get tokens of univ2-like pair
+func (p *Parser) GetUniv2PairTokens(address *tronApi.Address) (string, int32, string, int32, bool) {
+	pair := justmoney.New(p.api, *address)
+	token0Addr, err := pair.Token0()
+	if err != nil {
+		p.log.Error("GetUniv2PairTokens: token0 " + err.Error())
+		return "", 0, "", 0, false
+	}
+	token1Addr, err := pair.Token1()
+	if err != nil {
+		p.log.Error("GetUniv2PairTokens: token1 " + err.Error())
+		return "", 0, "", 0, false
+	}
+
+	decimals := p.getTokenDecimals(token0Addr.ToBase58())
+	decimals2 := p.getTokenDecimals(token1Addr.ToBase58())
+
+	return token0Addr.ToBase58(), decimals, token1Addr.ToBase58(), decimals2, true
+}
+
+func (p *Parser) getTokenDecimals(addr string) int32 {
+	cachedDecimals, ok := p.tokenLists.GetDecimals(addr)
+	if ok {
+		return cachedDecimals
+	}
+
+	dec, err := p.api.GetTokenDecimals(addr)
+	if err != nil {
+		p.log.Error("getTokenDecimals: " + err.Error())
+		return 0
+	}
+	return dec
 }
 
 func (p *Parser) GetEncodedBlock() []byte {
