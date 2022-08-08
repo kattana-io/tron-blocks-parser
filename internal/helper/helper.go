@@ -1,7 +1,7 @@
 package helper
 
 import (
-	"github.com/kattana-io/tron-blocks-parser/pkg/tronApi"
+	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/shopspring/decimal"
 	"math/big"
 )

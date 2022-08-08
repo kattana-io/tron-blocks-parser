@@ -8,7 +8,7 @@ import (
 	"github.com/kattana-io/tron-blocks-parser/internal/integrations"
 	"github.com/kattana-io/tron-blocks-parser/internal/intermediate"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
-	"github.com/kattana-io/tron-blocks-parser/pkg/tronApi"
+	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/vmihailenco/msgpack/v5"
 	"go.uber.org/zap"
 	"sync"
@@ -131,25 +131,26 @@ func (p *Parser) GetCachePairToken(address string) (string, int32, bool) {
 }
 
 // GetPairTokens - Get tokens of pair
-func (p *Parser) GetPairTokens(address string) (string, int32, string, int32, bool) {
-	adr, decimals, ok := p.GetCachePairToken(address)
+func (p *Parser) GetPairTokens(address *tronApi.Address) (string, int32, string, int32, bool) {
+	adr, decimals, ok := p.GetCachePairToken(address.ToBase58())
 	if ok {
 		return adr, decimals, trxTokenAddress, trxDecimals, true
 	}
 
 	// Cache miss
-	token, err := p.api.GetPairToken(address)
-	cachedDecimals, ok := p.tokenLists.GetDecimals(token)
+	hexTokenAddress, err := p.api.GetPairToken(address.ToHex())
+	tokenAddr := tronApi.FromHex(hexTokenAddress)
+	cachedDecimals, ok := p.tokenLists.GetDecimals(tokenAddr.ToBase58())
 	if ok {
-		return token, cachedDecimals, trxTokenAddress, trxDecimals, true
+		return tokenAddr.ToBase58(), cachedDecimals, trxTokenAddress, trxDecimals, true
 	}
 
-	dec, err := p.api.GetTokenDecimals(token)
+	dec, err := p.api.GetTokenDecimals(tokenAddr.ToHex())
 	if err != nil {
 		p.log.Error("GetPairTokens: " + err.Error())
 		return "", 0, trxTokenAddress, trxDecimals, false
 	}
-	return token, dec, trxTokenAddress, trxDecimals, true
+	return tokenAddr.ToBase58(), dec, trxTokenAddress, trxDecimals, true
 }
 
 func (p *Parser) GetEncodedBlock() []byte {
