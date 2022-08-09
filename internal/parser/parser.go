@@ -33,6 +33,10 @@ func (p *Parser) Parse(block models.Block) bool {
 	p.state = CreateState(&block)
 
 	resp, err := p.api.GetBlockByNum(int32(block.Number.Int64()))
+	if resp.BlockID == "" {
+		p.log.Error("Could not receive block")
+		return false
+	}
 	if err != nil {
 		p.log.Error("Parse: " + err.Error())
 		return false
@@ -40,8 +44,10 @@ func (p *Parser) Parse(block models.Block) bool {
 
 	p.log.Info("Parsing block: " + block.Number.String())
 
+	cnt := 0
 	for _, transaction := range resp.Transactions {
-		if isSuccessCall(&transaction) || hasContractCalls(&transaction) || isNotTransferCall(&transaction) {
+		if (isSuccessCall(&transaction) || hasContractCalls(&transaction)) && isNotTransferCall(&transaction) {
+			cnt += 1
 			p.parseTransaction(transaction)
 		}
 	}
