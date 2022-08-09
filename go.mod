@@ -6,12 +6,12 @@ require (
 	github.com/ethereum/go-ethereum v1.10.21
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/goccy/go-json v0.9.7
+	github.com/kattana-io/tron-objects-api v0.0.0-20220809080829-f6d719001aa8
 	github.com/segmentio/kafka-go v0.4.31
 	github.com/shopspring/decimal v1.3.1
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.12.0
 	github.com/vmihailenco/msgpack/v5 v5.3.5
-	github.com/kattana-io/tron-objects-api v0.0.0-20220809080829-f6d719001aa8
 	go.uber.org/zap v1.21.0
 )
 
