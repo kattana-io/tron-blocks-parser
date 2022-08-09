@@ -7,7 +7,7 @@ package parser
 import (
 	"github.com/kattana-io/tron-blocks-parser/internal/helper"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
-	"github.com/kattana-io/tron-blocks-parser/pkg/tronApi"
+	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/shopspring/decimal"
 	"math/big"
 	"os"
@@ -27,6 +27,8 @@ const tokenPurchaseEvent = 0xcd60aa75
 const trxPurchaseEvent = 0xdad9ec5c
 const snapshotEvent = 0xcc7244d3
 const listingEvent = 0x9d42cb01
+const jmListingEvent = 0x0d3648bd
+const jmUniv2SwapEvent = 0xd78ad95f
 
 func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, wg *sync.WaitGroup) {
 	defer wg.Done()
@@ -45,12 +47,16 @@ func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, wg *syn
 		p.onPairSnapshot(log, tx, timestamp)
 	case listingEvent:
 		p.onPairCreated(log, tx, timestamp)
+	case jmListingEvent:
+		p.onJmPairCreated(log, tx, timestamp)
+	case jmUniv2SwapEvent:
+		p.onJmSwapEvent(log, tx, timestamp)
 	}
 }
 
 // topics - from, to, value
 func (p *Parser) onTokenTransfer(log tronApi.Log, tx string, timestamp int64) {
-	Contract := log.Address
+	Contract := tronApi.FromHex(log.Address)
 	from := log.Topics[0]
 	to := log.Topics[1]
 	value := log.Topics[2]
@@ -82,7 +88,7 @@ func (p *Parser) onTokenTransfer(log tronApi.Log, tx string, timestamp int64) {
 
 	tEvent := models.TransferEvent{
 		Chain:       Chain,
-		Contract:    Contract,
+		Contract:    Contract.ToBase58(),
 		BlockNumber: p.state.Block.Number.Uint64(),
 		Date:        time.Unix(timestamp, 0),
 		Order:       0,
@@ -97,12 +103,10 @@ func (p *Parser) onTokenTransfer(log tronApi.Log, tx string, timestamp int64) {
 
 // topics - buyer,trx_sold,tokens_bought
 func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
-	pair := log.Address
+	pair := tronApi.FromHex(log.Address)
 	buyer := tronApi.TrimZeroes(log.Topics[1])
 	// Dissolve pair
 	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(pair)
-	tokenA58 := tronApi.DecodeAddress(tokenA)
-	pair58 := tronApi.DecodeAddress(pair)
 
 	if !ok {
 		p.log.Error("Could not dissolve pair: onTokenPurchase")
@@ -124,7 +128,7 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 	priceA := trxAmount.Div(tokenAmount)
 	priceB := tokenAmount.Div(trxAmount)
 
-	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA58, tokenB, priceA)
+	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
 	swap := models.PairSwap{
@@ -132,7 +136,7 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 		Date:        time.Unix(timestamp, 0),
 		Chain:       Chain,
 		BlockNumber: p.state.Block.Number.Uint64(),
-		Pair:        pair58,
+		Pair:        pair.ToBase58(),
 		Amount0:     tokenAmountRaw.BigInt(),
 		Amount1:     trxAmountRaw.BigInt(),
 		Buy:         true,
@@ -141,7 +145,7 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 		PriceB:      priceB,
 		PriceBUSD:   priceBUSD,
 		Bot:         false,
-		Wallet:      tronApi.DecodeAddress(buyer),
+		Wallet:      tronApi.FromHex(buyer).ToBase58(),
 		Order:       0,
 		ValueUSD:    valueUSD,
 	}
@@ -150,12 +154,10 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 
 // topics - buyer, tokens_sold, trx_bought
 func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
-	pair := log.Address
+	pair := tronApi.FromHex(log.Address)
 	buyer := tronApi.TrimZeroes(log.Topics[1])
 	// Dissolve pair
 	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(pair)
-	tokenA58 := tronApi.DecodeAddress(tokenA)
-	pair58 := tronApi.DecodeAddress(pair)
 
 	if !ok {
 		p.log.Error("Could not dissolve tokens: onTrxPurchase")
@@ -178,7 +180,7 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	priceA := trxAmount.Div(tokenAmount)
 	priceB := tokenAmount.Div(trxAmount)
 
-	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA58, tokenB, priceA)
+	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
 	swap := models.PairSwap{
@@ -186,7 +188,7 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 		Date:        time.Unix(timestamp, 0),
 		Chain:       Chain,
 		BlockNumber: p.state.Block.Number.Uint64(),
-		Pair:        pair58,
+		Pair:        pair.ToBase58(),
 		Amount0:     tokenAmountRaw.BigInt(),
 		Amount1:     trxAmountRaw.BigInt(),
 		Buy:         false,
@@ -195,7 +197,7 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 		PriceB:      priceB,
 		PriceBUSD:   priceBUSD,
 		Bot:         false,
-		Wallet:      tronApi.DecodeAddress(buyer),
+		Wallet:      tronApi.FromHex(buyer).ToBase58(),
 		Order:       0,
 		ValueUSD:    valueUSD,
 	}
@@ -219,13 +221,11 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 		p.log.Error("onPairSnapshot: Invalid length of topics")
 		return
 	}
-	pair := log.Address
+	pair := tronApi.FromHex(log.Address)
 	operator := tronApi.TrimZeroes(log.Topics[1])
 
 	// Dissolve pair
 	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(pair)
-	tokenA58 := tronApi.DecodeAddress(tokenA)
-	pair58 := tronApi.DecodeAddress(pair)
 
 	if !ok {
 		p.log.Error("Could not dissolve tokens: onTrxPurchase")
@@ -247,8 +247,8 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 	// Calculate prices
 	priceA := trxAmount.Div(tokenAmount)
 
-	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA58, tokenB, priceA)
-	p.fiatConverter.UpdateTokenUSDPrice(tokenA58, priceAUSD)
+	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
+	p.fiatConverter.UpdateTokenUSDPrice(tokenA, priceAUSD)
 	p.fiatConverter.UpdateTokenUSDPrice(trxTokenAddress, priceBUSD)
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
@@ -256,10 +256,10 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 		BlockNumber: p.state.Block.Number.Uint64(),
 		Date:        time.Unix(timestamp, 0),
 		Tx:          tx,
-		Pair:        pair58,
+		Pair:        pair.ToBase58(),
 		Chain:       Chain,
 		Klass:       "sync",
-		Wallet:      tronApi.DecodeAddress(operator),
+		Wallet:      tronApi.FromHex(operator).ToBase58(),
 		Order:       0,
 		Reserve0:    tokenAmountRaw.String(),
 		Reserve1:    trxAmountRaw.String(),
@@ -273,11 +273,11 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 // onPairCreated - handle listing event
 // topics - exchange, token
 func (p *Parser) onPairCreated(log tronApi.Log, tx string, timestamp int64) {
-	factory := log.Address
-	pair := tronApi.TrimZeroes(log.Topics[2])
+	factory := tronApi.FromHex(log.Address)
+	pair := tronApi.FromHex(tronApi.TrimZeroes(log.Topics[2]))
 	//token := log.Topics[1]
 	nodeUrl := os.Getenv("SOLIDITY_FULL_NODE_URL")
-	p.state.RegisterNewPair(factory, pair, "sunswap", Chain, nodeUrl, time.Unix(timestamp, 0))
+	p.state.RegisterNewPair(factory.ToBase58(), pair.ToBase58(), "sunswap", Chain, nodeUrl, time.Unix(timestamp, 0))
 }
 
 // convert "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" -> 0xddf252ad

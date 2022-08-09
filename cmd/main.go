@@ -12,7 +12,8 @@ import (
 	"github.com/kattana-io/tron-blocks-parser/internal/parser"
 	"github.com/kattana-io/tron-blocks-parser/internal/runway"
 	"github.com/kattana-io/tron-blocks-parser/internal/transport"
-	"github.com/kattana-io/tron-blocks-parser/pkg/tronApi"
+	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
+	"github.com/kattana-io/tron-objects-api/pkg/url"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -92,13 +93,13 @@ func shouldWarmupCache(pairsCache *cache.PairsCache) {
 
 func createApi(logger *zap.Logger) *tronApi.Api {
 	nodeUrl := os.Getenv("SOLIDITY_FULL_NODE_URL")
-	var provider tronApi.ApiUrlProvider
+	var provider url.ApiUrlProvider
 	if nodeUrl == "" {
 		logger.Info("Using trongrid adapter")
-		provider = tronApi.NewTrongridUrlProvider()
+		provider = url.NewTrongridUrlProvider()
 	} else {
 		logger.Info("Using node adapter")
-		provider = tronApi.NewNodeUrlProvider(nodeUrl)
+		provider = url.NewNodeUrlProvider(nodeUrl)
 	}
 	api := tronApi.NewApi(nodeUrl, logger, provider)
 	return api

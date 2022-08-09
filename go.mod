@@ -3,10 +3,10 @@ module github.com/kattana-io/tron-blocks-parser
 go 1.18
 
 require (
-	github.com/ethereum/go-ethereum v1.10.20
+	github.com/ethereum/go-ethereum v1.10.21
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/goccy/go-json v0.9.7
-	github.com/mr-tron/base58 v1.2.0
+	github.com/kattana-io/tron-objects-api v1.0.0
 	github.com/segmentio/kafka-go v0.4.31
 	github.com/shopspring/decimal v1.3.1
 	github.com/spf13/cobra v1.5.0
@@ -29,6 +29,7 @@ require (
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.14 // indirect
+	github.com/shengdoushi/base58 v1.0.0 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect

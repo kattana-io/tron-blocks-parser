@@ -2,7 +2,7 @@ package parser
 
 import (
 	"github.com/goccy/go-json"
-	"github.com/kattana-io/tron-blocks-parser/pkg/tronApi"
+	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"testing"
 )
 
