@@ -35,6 +35,7 @@ func main() {
 	api := createApi(logger)
 	tokenLists := integrations.NewTokensListProvider(logger)
 	pairsCache := cache.NewPairsCache(redis, logger)
+	jmPairsCache := cache.CreateJMPairsCache(redis, api, logger)
 	shouldWarmupCache(pairsCache)
 
 	logger.Info(fmt.Sprintf("Start parser in %s mode", mode))
@@ -62,7 +63,7 @@ func main() {
 		 * Process block
 		 */
 		fiatConverter := converters.CreateConverter(redis, logger, &block)
-		p := parser.New(api, logger, tokenLists, pairsCache, fiatConverter, abiHolder)
+		p := parser.New(api, logger, tokenLists, pairsCache, fiatConverter, abiHolder, jmPairsCache)
 		ok := p.Parse(block)
 		if ok {
 			publisher.PublishBlock(context.Background(), p.GetEncodedBlock())
