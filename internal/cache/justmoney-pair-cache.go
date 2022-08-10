@@ -16,8 +16,10 @@ type JMPairsCache struct {
 	api   *tronApi.Api
 }
 
+const KeyDiv = "jmcache"
+
 func (c *JMPairsCache) GetPair(network string, address *tronApi.Address) (*pair.Pair, bool) {
-	key := c.redis.Key(network, address)
+	key := c.redis.Key(network, KeyDiv, address)
 	ctx := context.Background()
 	value, err := c.redis.Value(ctx, key)
 

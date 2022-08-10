@@ -12,7 +12,7 @@ import (
 )
 
 type Cache interface {
-	Key(network string, address *tronApi.Address) string
+	Key(network string, div string, address *tronApi.Address) string
 	Store(ctx context.Context, key string, data *pair.Pair, ttl time.Duration) error
 	Value(ctx context.Context, key string) (*pair.Pair, error)
 }
@@ -57,8 +57,8 @@ func (r *redisCache) Value(ctx context.Context, key string) (*pair.Pair, error) 
 	return &data, nil
 }
 
-func (r *redisCache) Key(network string, address *tronApi.Address) string {
-	return fmt.Sprintf("parser:%s:%s", network, address.ToBase58())
+func (r *redisCache) Key(network string, div string, address *tronApi.Address) string {
+	return fmt.Sprintf("parser:%s:%s:%s", network, div, address.ToBase58())
 }
 
 func NewRedisCache(redis *redis.Client, log *zap.Logger) *redisCache {
