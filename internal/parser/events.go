@@ -29,6 +29,7 @@ const snapshotEvent = 0xcc7244d3
 const listingEvent = 0x9d42cb01
 const jmListingEvent = 0x0d3648bd
 const jmUniv2SwapEvent = 0xd78ad95f
+const jmUniV2SyncEventId = 0x1c411e9a // 0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1
 
 func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, wg *sync.WaitGroup) {
 	defer wg.Done()
@@ -51,6 +52,8 @@ func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, wg *syn
 		p.onJmPairCreated(log, tx, timestamp)
 	case jmUniv2SwapEvent:
 		p.onJmSwapEvent(log, tx, timestamp)
+	case jmUniV2SyncEventId:
+		p.onJmSyncEvent(log, tx, timestamp)
 	}
 }
 
