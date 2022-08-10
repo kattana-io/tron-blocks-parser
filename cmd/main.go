@@ -35,7 +35,7 @@ func main() {
 	api := createApi(logger)
 	tokenLists := integrations.NewTokensListProvider(logger)
 	pairsCache := cache.NewPairsCache(redis, logger)
-	jmPairsCache := cache.CreateJMPairsCache(redis, api, logger)
+	jmPairsCache := cache.CreateJMPairsCache(redis, api, tokenLists, logger)
 	shouldWarmupCache(pairsCache)
 
 	logger.Info(fmt.Sprintf("Start parser in %s mode", mode))

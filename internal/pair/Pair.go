@@ -1,6 +1,7 @@
 package pair
 
 import (
+	"github.com/kattana-io/tron-blocks-parser/internal/integrations"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	justmoney "github.com/kattana-io/tron-objects-api/pkg/justomoney"
 	"go.uber.org/zap"
@@ -11,7 +12,7 @@ type Pair struct {
 	TokenB Token `json:"tokenB"`
 }
 
-func NewPair(address *tronApi.Address, api *tronApi.Api, log *zap.Logger) (Pair, bool) {
+func NewPair(address *tronApi.Address, api *tronApi.Api, tokenList *integrations.TokenListsProvider, log *zap.Logger) (Pair, bool) {
 	pair := justmoney.New(api, *address)
 	token0Addr, err := pair.Token0()
 	if err != nil {
@@ -24,8 +25,8 @@ func NewPair(address *tronApi.Address, api *tronApi.Api, log *zap.Logger) (Pair,
 		return Pair{}, false
 	}
 
-	decimals := getTokenDecimals(token0Addr.ToBase58(), api, log)
-	decimals2 := getTokenDecimals(token1Addr.ToBase58(), api, log)
+	decimals := getTokenDecimals(token0Addr.ToBase58(), api, tokenList, log)
+	decimals2 := getTokenDecimals(token1Addr.ToBase58(), api, tokenList, log)
 
 	return Pair{
 		TokenA: Token{
@@ -39,7 +40,12 @@ func NewPair(address *tronApi.Address, api *tronApi.Api, log *zap.Logger) (Pair,
 	}, true
 }
 
-func getTokenDecimals(addr string, api *tronApi.Api, log *zap.Logger) int32 {
+func getTokenDecimals(addr string, api *tronApi.Api, tokenList *integrations.TokenListsProvider, log *zap.Logger) int32 {
+	dec, ok := tokenList.GetDecimals(addr)
+	if ok {
+		return dec
+	}
+
 	dec, err := api.GetTokenDecimals(addr)
 	if err != nil {
 		log.Error("getTokenDecimals: " + err.Error())

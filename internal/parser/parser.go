@@ -161,7 +161,6 @@ func (p *Parser) GetPairTokens(address *tronApi.Address) (string, int32, string,
 }
 
 func (p *Parser) GetUniv2PairTokens(address *tronApi.Address) (string, int32, string, int32, bool) {
-
 	pair, ok := p.jmcache.GetPair(Chain, address)
 	if ok {
 		return pair.TokenA.Address, int32(pair.TokenA.Decimals), pair.TokenB.Address, int32(pair.TokenB.Decimals), true

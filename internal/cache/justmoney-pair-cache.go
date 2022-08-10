@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"github.com/go-redis/redis/v8"
+	"github.com/kattana-io/tron-blocks-parser/internal/integrations"
 	"github.com/kattana-io/tron-blocks-parser/internal/pair"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"go.uber.org/zap"
@@ -10,10 +11,11 @@ import (
 )
 
 type JMPairsCache struct {
-	log   *zap.Logger
-	redis Cache
-	ttl   time.Duration
-	api   *tronApi.Api
+	log       *zap.Logger
+	redis     Cache
+	ttl       time.Duration
+	api       *tronApi.Api
+	tokenList *integrations.TokenListsProvider
 }
 
 const KeyDiv = "jmcache"
@@ -24,7 +26,7 @@ func (c *JMPairsCache) GetPair(network string, address *tronApi.Address) (*pair.
 	value, err := c.redis.Value(ctx, key)
 
 	if err != nil || value == nil {
-		pairEntity, ok := pair.NewPair(address, c.api, c.log)
+		pairEntity, ok := pair.NewPair(address, c.api, c.tokenList, c.log)
 		if ok {
 			if err := c.redis.Store(ctx, key, &pairEntity, c.ttl); err != nil {
 				c.log.Error(err.Error())
@@ -38,11 +40,12 @@ func (c *JMPairsCache) GetPair(network string, address *tronApi.Address) (*pair.
 	}
 }
 
-func CreateJMPairsCache(redis *redis.Client, api *tronApi.Api, log *zap.Logger) *JMPairsCache {
+func CreateJMPairsCache(redis *redis.Client, api *tronApi.Api, tokenList *integrations.TokenListsProvider, log *zap.Logger) *JMPairsCache {
 	return &JMPairsCache{
-		api:   api,
-		log:   log,
-		redis: NewRedisCache(redis, log),
-		ttl:   24 * time.Hour * 30, // 30 days
+		api:       api,
+		log:       log,
+		redis:     NewRedisCache(redis, log),
+		tokenList: tokenList,
+		ttl:       24 * time.Hour * 30, // 30 days
 	}
 }
