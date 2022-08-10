@@ -97,7 +97,9 @@ func (p *Parser) parseTransaction(transaction tronApi.Transaction) {
 	wg.Add(len(resp.Log))
 	for _, log := range resp.Log {
 		t := transaction.RawData.Timestamp / 1000
-		go p.processLog(log, transaction.TxID, t, &wg)
+
+		owner := transaction.RawData.Contract[0].Parameter.Value.OwnerAddress
+		go p.processLog(log, transaction.TxID, t, owner, &wg)
 	}
 	wg.Wait()
 }

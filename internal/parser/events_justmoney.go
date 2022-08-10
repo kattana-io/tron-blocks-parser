@@ -63,7 +63,7 @@ func GetUniV2Buy(Amount0In *big.Int, Amount0Out *big.Int, Amount1In *big.Int, Am
 	return false
 }
 
-func (p *Parser) onJmSyncEvent(log tronApi.Log, tx string, timestamp int64) {
+func (p *Parser) onJmSyncEvent(log tronApi.Log, tx string, owner *tronApi.Address, timestamp int64) {
 	event, err := p.abiHolder.JMPairAbi.EventByID(common.HexToHash(log.Topics[0]))
 
 	if err != nil {
@@ -106,7 +106,7 @@ func (p *Parser) onJmSyncEvent(log tronApi.Log, tx string, timestamp int64) {
 			Pair:        pair.ToBase58(),
 			Chain:       Chain,
 			Klass:       "sync",
-			Wallet:      "TEST_3", // TODO: Get sender
+			Wallet:      owner.ToBase58(),
 			Order:       0,
 			Reserve0:    reserves0.String(),
 			Reserve1:    reserves1.String(),
@@ -145,7 +145,7 @@ func (p *Parser) calculateReservesInUSD(reserves0 *big.Int, reserves1 *big.Int, 
 	return decimal.NewFromInt(0)
 }
 
-func (p *Parser) onJmSwapEvent(log tronApi.Log, tx string, timestamp int64) {
+func (p *Parser) onJmSwapEvent(log tronApi.Log, tx string, owner *tronApi.Address, timestamp int64) {
 	event, err := p.abiHolder.JMPairAbi.EventByID(common.HexToHash(log.Topics[0]))
 	if err != nil {
 		p.log.Debug("Unpack error", zap.Error(err))
@@ -212,7 +212,7 @@ func (p *Parser) onJmSwapEvent(log tronApi.Log, tx string, timestamp int64) {
 			PriceBUSD:   PriceBUSD,
 			ValueUSD:    calculateValueUSD(naturalA, naturalB, PriceAUSD, PriceBUSD),
 			Bot:         false,
-			Wallet:      "", // TODO: Get sender
+			Wallet:      owner.ToBase58(),
 			Order:       0,
 		}
 

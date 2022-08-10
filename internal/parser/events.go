@@ -31,12 +31,25 @@ const jmListingEvent = 0x0d3648bd
 const jmUniv2SwapEvent = 0xd78ad95f
 const jmUniV2SyncEventId = 0x1c411e9a // 0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1
 
-func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, wg *sync.WaitGroup) {
+func isBase58(input string) bool {
+	return input[0] == 'T'
+}
+
+func getAddressObject(pair string) *tronApi.Address {
+	if isBase58(pair) {
+		return tronApi.FromBase58(pair)
+	}
+	return tronApi.FromHex(pair)
+}
+
+func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, owner string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if len(log.Topics) < 1 {
 		return
 	}
 	methodId := getMethodId(log.Topics[0])
+
+	ownerAddress := getAddressObject(owner)
 	switch methodId {
 	//case transferEvent:
 	//	p.onTokenTransfer(log, tx, timestamp)
@@ -51,9 +64,9 @@ func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, wg *syn
 	case jmListingEvent:
 		p.onJmPairCreated(log, tx, timestamp)
 	case jmUniv2SwapEvent:
-		p.onJmSwapEvent(log, tx, timestamp)
+		p.onJmSwapEvent(log, tx, ownerAddress, timestamp)
 	case jmUniV2SyncEventId:
-		p.onJmSyncEvent(log, tx, timestamp)
+		p.onJmSyncEvent(log, tx, ownerAddress, timestamp)
 	}
 }
 
