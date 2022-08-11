@@ -8,7 +8,6 @@ import (
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
-	"io/ioutil"
 	"math/big"
 	"sync"
 	"time"
@@ -31,21 +30,7 @@ type FiatConverter struct {
 
 const StableCoin = 2
 
-// ReadFile and update internal state
-func (f *FiatConverter) ReadFile() {
-	raw, err := ioutil.ReadFile("quotes.json")
-	if err != nil {
-		return
-	}
-	cFile := models.ConfigFile{}
-	err = json.Unmarshal(raw, &cFile)
-	if err != nil {
-		return
-	}
-	f.rawQuotes = cFile.Quotes
-}
-
-func CreateConverter(client *redis.Client, log *zap.Logger, block *models.Block) *FiatConverter {
+func CreateConverter(client *redis.Client, log *zap.Logger, block *models.Block, rawQuotes []models.QuotePair) *FiatConverter {
 	converter := &FiatConverter{
 		log:             log,
 		redis:           client,
@@ -55,10 +40,8 @@ func CreateConverter(client *redis.Client, log *zap.Logger, block *models.Block)
 		supported:       make(map[string]bool, 0),
 		pairs:           make(map[string]bool, 0),
 		stableCoinsList: make(map[string]bool, 0),
-		rawQuotes:       make([]models.QuotePair, 0),
+		rawQuotes:       rawQuotes,
 	}
-
-	converter.ReadFile()
 
 	for _, quote := range converter.rawQuotes {
 		if quote.Kind == StableCoin {
