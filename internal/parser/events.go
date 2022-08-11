@@ -262,6 +262,7 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 
 	// Calculate prices
 	priceA := trxAmount.Div(tokenAmount)
+	priceB := tokenAmount.Div(trxAmount)
 
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
 	p.fiatConverter.UpdateTokenUSDPrice(tokenA, priceAUSD)
@@ -279,8 +280,10 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 		Order:       0,
 		Reserve0:    tokenAmountRaw.String(),
 		Reserve1:    trxAmountRaw.String(),
-		Price:       priceA,
-		PriceUSD:    priceAUSD,
+		PriceA:      priceA,
+		PriceAUSD:   priceAUSD,
+		PriceB:      priceB,
+		PriceBUSD:   priceBUSD,
 		ReserveUSD:  valueUSD,
 	}
 	p.state.AddLiquidity(&syncEvent)

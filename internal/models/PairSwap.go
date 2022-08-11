@@ -15,12 +15,12 @@ type PairSwap struct {
 	Amount0     *big.Int        `json:"amount0"`
 	Amount1     *big.Int        `json:"amount1"`
 	Buy         bool            `json:"buy"`
-	PriceA      decimal.Decimal `json:"priceA"`
-	PriceAUSD   decimal.Decimal `json:"PriceAUSD"`
-	PriceB      decimal.Decimal `json:"priceB"`
-	PriceBUSD   decimal.Decimal `json:"priceBUSD"`
+	PriceA      decimal.Decimal `json:"pricea"`
+	PriceAUSD   decimal.Decimal `json:"pricea_usd"`
+	PriceB      decimal.Decimal `json:"priceb"`
+	PriceBUSD   decimal.Decimal `json:"priceb_usd"`
 	Bot         bool            `json:"bot"`
 	Wallet      string          `json:"wallet"`
 	Order       uint16          `json:"order"`
-	ValueUSD    decimal.Decimal `json:"valueUSD"`
+	ValueUSD    decimal.Decimal `json:"value_usd"`
 }

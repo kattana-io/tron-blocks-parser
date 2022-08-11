@@ -89,15 +89,22 @@ func (p *Parser) onJmSyncEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 			return
 		}
 
-		Price := decimal.Decimal{}
+		// @todo verify price formula
+		priceA := decimal.Decimal{}
 		res0 := decimal.NewFromBigInt(reserves0, -int32(decimalsA))
 		if !res0.IsZero() {
-			Price = decimal.NewFromBigInt(reserves1, -int32(decimalsB)).Div(res0)
+			priceA = decimal.NewFromBigInt(reserves1, -int32(decimalsB)).Div(res0)
 		}
 
-		PriceUSD, _ := p.fiatConverter.ConvertAB(tokenA, tokenB, Price)
+		priceB := decimal.Decimal{}
+		res1 := decimal.NewFromBigInt(reserves1, -int32(decimalsB))
+		if !res1.IsZero() {
+			priceB = decimal.NewFromBigInt(reserves0, -int32(decimalsA)).Div(res1)
+		}
 
-		reservesUSD := p.calculateReservesInUSD(reserves0, reserves1, Price, pair)
+		priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
+
+		reservesUSD := p.calculateReservesInUSD(reserves0, reserves1, priceA, pair)
 
 		sync := models.LiquidityEvent{
 			BlockNumber: p.state.Block.Number.Uint64(),
@@ -110,8 +117,10 @@ func (p *Parser) onJmSyncEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 			Order:       0,
 			Reserve0:    reserves0.String(),
 			Reserve1:    reserves1.String(),
-			Price:       Price,
-			PriceUSD:    PriceUSD,
+			PriceA:      priceA,
+			PriceAUSD:   priceAUSD,
+			PriceB:      priceB,
+			PriceBUSD:   priceBUSD,
 			ReserveUSD:  reservesUSD,
 		}
 

@@ -22,10 +22,12 @@ type LiquidityEvent struct {
 	Reserve0 string `json:"reserve0"`
 	Reserve1 string `json:"reserve1"`
 	// Statistics part
-	Price    decimal.Decimal `json:"price"`
-	PriceUSD decimal.Decimal `json:"priceUSD"`
+	PriceA    decimal.Decimal `json:"pricea"`
+	PriceAUSD decimal.Decimal `json:"pricea_usd"`
+	PriceB    decimal.Decimal `json:"priceb"`
+	PriceBUSD decimal.Decimal `json:"priceb_usd"`
 	// USD value of operation
-	ValueUSD decimal.Decimal `json:"valueUSD"`
+	ValueUSD decimal.Decimal `json:"value_usd"`
 	// Reserves value in USD
-	ReserveUSD decimal.Decimal `json:"reserveUSD"`
+	ReserveUSD decimal.Decimal `json:"reserve_usd"`
 }
