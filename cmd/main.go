@@ -18,9 +18,15 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
+	gracefulShutdown := make(chan os.Signal, 1)
+	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM)
+
 	/**
 	 * Handle run options like close signals
 	 */
@@ -76,7 +82,29 @@ func main() {
 	t.OnFail(func(err error) {
 		logger.Fatal("failed to close reader: " + err.Error())
 	})
-	t.Listen()
+	go t.Listen()
+
+	<-gracefulShutdown
+
+	_, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	// we don't need the context variable here so let's just put underscore
+	defer handleTermination(publisher, t, cancel)
+}
+
+func handleTermination(publisher *transport.Publisher, t *transport.Consumer, cancel context.CancelFunc) {
+	fmt.Println("Start terminating process")
+
+	// close reader
+	t.Close()
+
+	// wait 6 seconds until last block will be processed
+	time.Sleep(6 * time.Second)
+
+	// close writer
+	publisher.Close()
+
+	fmt.Println("Finish")
+	cancel()
 }
 
 // Check if we should fill cache for dev purpose

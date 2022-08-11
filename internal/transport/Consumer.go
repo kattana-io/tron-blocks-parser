@@ -2,6 +2,7 @@ package transport
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-redis/redis/v8"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	"github.com/segmentio/kafka-go"
@@ -40,6 +41,14 @@ func (t *Consumer) OnFail(f func(error error)) {
 
 func (t *Consumer) OnBlock(f func(Value []byte) bool) {
 	t.blockFn = f
+}
+
+func (t *Consumer) Close() {
+	err := t.reader.Close()
+
+	if err != nil {
+		t.log.Error(fmt.Sprintf("Error during reader closing: %s", err.Error()))
+	}
 }
 
 func CreateConsumer(topic models.Topics, log *zap.Logger) *Consumer {
