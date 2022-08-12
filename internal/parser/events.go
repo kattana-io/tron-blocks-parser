@@ -11,7 +11,6 @@ import (
 	"github.com/shopspring/decimal"
 	"math/big"
 	"os"
-	"sync"
 	"time"
 )
 
@@ -30,8 +29,7 @@ const listingEvent = 0x9d42cb01
 const jmListingEvent = 0x0d3648bd
 const jmUniv2SwapEvent = 0xd78ad95f
 
-func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64) {
 	if len(log.Topics) < 1 {
 		return
 	}

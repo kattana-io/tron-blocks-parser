@@ -11,7 +11,6 @@ import (
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/vmihailenco/msgpack/v5"
 	"go.uber.org/zap"
-	"sync"
 	"time"
 )
 
@@ -19,7 +18,6 @@ type Parser struct {
 	api           *tronApi.Api
 	log           *zap.Logger
 	failedTx      []tronApi.Transaction
-	txMap         map[string]*tronApi.GetTransactionInfoByIdResp
 	state         *State
 	tokenLists    *integrations.TokenListsProvider
 	pairsCache    *cache.PairsCache
@@ -89,17 +87,11 @@ func (p *Parser) parseTransaction(transaction tronApi.Transaction) {
 		p.failedTx = append(p.failedTx, transaction)
 		return
 	}
-	// Populate cache
-	p.txMap[transaction.TxID] = resp
 
-	// Process logs
-	wg := sync.WaitGroup{}
-	wg.Add(len(resp.Log))
 	for _, log := range resp.Log {
 		t := transaction.RawData.Timestamp / 1000
-		go p.processLog(log, transaction.TxID, t, &wg)
+		p.processLog(log, transaction.TxID, t)
 	}
-	wg.Wait()
 }
 
 const trxTokenAddress = "TRX"
@@ -185,7 +177,6 @@ func New(api *tronApi.Api, log *zap.Logger, lists *integrations.TokenListsProvid
 		api:           api,
 		log:           log,
 		failedTx:      []tronApi.Transaction{},
-		txMap:         make(map[string]*tronApi.GetTransactionInfoByIdResp),
 		tokenLists:    lists,
 		pairsCache:    pairsCache,
 		abiHolder:     abiHolder,
