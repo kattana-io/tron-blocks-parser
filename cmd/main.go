@@ -7,6 +7,7 @@ import (
 	"github.com/kattana-io/tron-blocks-parser/internal/abi"
 	"github.com/kattana-io/tron-blocks-parser/internal/cache"
 	"github.com/kattana-io/tron-blocks-parser/internal/converters"
+	"github.com/kattana-io/tron-blocks-parser/internal/helper"
 	"github.com/kattana-io/tron-blocks-parser/internal/integrations"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	"github.com/kattana-io/tron-blocks-parser/internal/parser"
@@ -39,6 +40,7 @@ func main() {
 	runner.Run()
 
 	api := createApi(logger)
+	quotesFile := helper.NewQuotesFile()
 	tokenLists := integrations.NewTokensListProvider(logger)
 	pairsCache := cache.NewPairsCache(redis, logger)
 	jmPairsCache := cache.CreateJMPairsCache(redis, api, tokenLists, logger)
@@ -68,7 +70,7 @@ func main() {
 		/**
 		 * Process block
 		 */
-		fiatConverter := converters.CreateConverter(redis, logger, &block)
+		fiatConverter := converters.CreateConverter(redis, logger, &block, quotesFile.Get())
 		p := parser.New(api, logger, tokenLists, pairsCache, fiatConverter, abiHolder, jmPairsCache)
 		ok := p.Parse(block)
 		if ok {
