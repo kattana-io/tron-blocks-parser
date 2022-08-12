@@ -4,6 +4,7 @@ WORKDIR /build
 COPY cmd ./cmd
 COPY internal ./internal
 COPY quotes.json ./
+COPY tokens.json ./
 COPY go.mod go.sum ./
 RUN apk --no-cache add git mercurial ca-certificates
 RUN go mod download
@@ -15,5 +16,6 @@ RUN echo "UTC" > /etc/timezone
 WORKDIR /root/
 COPY --from=gobuild /build/.bin/app .
 COPY --from=gobuild /build/quotes.json .
+COPY --from=gobuild /build/tokens.json .
 EXPOSE 8080
 CMD ["./app"]
