@@ -26,7 +26,7 @@ type Parser struct {
 	fiatConverter    *converters.FiatConverter
 	abiHolder        *abi.Holder
 	jmcache          *cache.JMPairsCache
-	whiteListedPairs []string
+	whiteListedPairs *sync.Map
 }
 
 // Parse - parse single block
@@ -180,12 +180,11 @@ func (p *Parser) GetEncodedBlock() []byte {
 }
 
 func New(api *tronApi.Api, log *zap.Logger, lists *integrations.TokenListsProvider, pairsCache *cache.PairsCache, converter *converters.FiatConverter, abiHolder *abi.Holder, jmcache *cache.JMPairsCache) *Parser {
-	whiteListedPairs := []string{
-		"TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE", // USDT-TRX
-		"TXX1i3BWKBuTxUmTERCztGyxSSpRagEcjX", // USDC-TRX
-		"TSJWbBJAS8HgQCMJfY5drVwYDa7JBAm6Es", // USDD-TRX
-		"TYukBQZ2XXCcRCReAUguyXncCWNY9CEiDQ", // JST-TRX
-	}
+	whiteListedPairs := sync.Map{}
+	whiteListedPairs.Store("TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE", true) // USDT-TRX
+	whiteListedPairs.Store("TXX1i3BWKBuTxUmTERCztGyxSSpRagEcjX", true) // USDC-TRX
+	whiteListedPairs.Store("TSJWbBJAS8HgQCMJfY5drVwYDa7JBAm6Es", true) // USDD-TRX
+	whiteListedPairs.Store("TYukBQZ2XXCcRCReAUguyXncCWNY9CEiDQ", true) // JST-TRX
 
 	return &Parser{
 		jmcache:          jmcache,
@@ -197,6 +196,6 @@ func New(api *tronApi.Api, log *zap.Logger, lists *integrations.TokenListsProvid
 		tokenLists:       lists,
 		pairsCache:       pairsCache,
 		abiHolder:        abiHolder,
-		whiteListedPairs: whiteListedPairs,
+		whiteListedPairs: &whiteListedPairs,
 	}
 }

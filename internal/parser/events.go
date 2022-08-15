@@ -276,10 +276,8 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 
 func (p *Parser) isPairWhiteListed(pair *tronApi.Address) bool {
 	pairAddress := pair.ToBase58()
-	for _, p58 := range p.whiteListedPairs {
-		if p58 == pairAddress {
-			return true
-		}
+	if _, ok := p.whiteListedPairs.Load(pairAddress); ok {
+		return true
 	}
 	return false
 }
