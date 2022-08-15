@@ -5,8 +5,8 @@ package parser
  */
 
 import (
+	commonModels "github.com/kattana-io/models/pkg/storage"
 	"github.com/kattana-io/tron-blocks-parser/internal/helper"
-	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/shopspring/decimal"
 	"math/big"
@@ -102,7 +102,7 @@ func (p *Parser) onTokenTransfer(log tronApi.Log, tx string, timestamp int64) {
 	priceA := tokenAmount.Div(trxAmount)
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
 
-	tEvent := models.TransferEvent{
+	tEvent := commonModels.TransferEvent{
 		Chain:       Chain,
 		Contract:    Contract.ToBase58(),
 		BlockNumber: p.state.Block.Number.Uint64(),
@@ -147,7 +147,7 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
-	swap := models.PairSwap{
+	swap := commonModels.PairSwap{
 		Tx:          tx,
 		Date:        time.Unix(timestamp, 0),
 		Chain:       Chain,
@@ -199,7 +199,7 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
-	swap := models.PairSwap{
+	swap := commonModels.PairSwap{
 		Tx:          tx,
 		Date:        time.Unix(timestamp, 0),
 		Chain:       Chain,
@@ -269,7 +269,7 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 	p.fiatConverter.UpdateTokenUSDPrice(trxTokenAddress, priceBUSD)
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
-	syncEvent := models.LiquidityEvent{
+	syncEvent := commonModels.LiquidityEvent{
 		BlockNumber: p.state.Block.Number.Uint64(),
 		Date:        time.Unix(timestamp, 0),
 		Tx:          tx,

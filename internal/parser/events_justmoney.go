@@ -3,7 +3,7 @@ package parser
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/kattana-io/tron-blocks-parser/internal/models"
+	commonModels "github.com/kattana-io/models/pkg/storage"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
@@ -106,7 +106,7 @@ func (p *Parser) onJmSyncEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 
 		reservesUSD := p.calculateReservesInUSD(reserves0, reserves1, priceA, pair)
 
-		sync := models.LiquidityEvent{
+		sync := commonModels.LiquidityEvent{
 			BlockNumber: p.state.Block.Number.Uint64(),
 			Date:        time.Unix(timestamp, 0),
 			Tx:          tx,
@@ -206,7 +206,7 @@ func (p *Parser) onJmSwapEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 
 		PriceAUSD, PriceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, PriceA)
 
-		trade := models.PairSwap{
+		trade := commonModels.PairSwap{
 			Tx:          tx,
 			Date:        time.Unix(timestamp, 0),
 			Chain:       Chain,
