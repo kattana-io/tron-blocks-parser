@@ -16,16 +16,17 @@ import (
 )
 
 type Parser struct {
-	api           *tronApi.Api
-	log           *zap.Logger
-	failedTx      []tronApi.Transaction
-	txMap         map[string]*tronApi.GetTransactionInfoByIdResp
-	state         *State
-	tokenLists    *integrations.TokenListsProvider
-	pairsCache    *cache.PairsCache
-	fiatConverter *converters.FiatConverter
-	abiHolder     *abi.Holder
-	jmcache       *cache.JMPairsCache
+	api              *tronApi.Api
+	log              *zap.Logger
+	failedTx         []tronApi.Transaction
+	txMap            map[string]*tronApi.GetTransactionInfoByIdResp
+	state            *State
+	tokenLists       *integrations.TokenListsProvider
+	pairsCache       *cache.PairsCache
+	fiatConverter    *converters.FiatConverter
+	abiHolder        *abi.Holder
+	jmcache          *cache.JMPairsCache
+	whiteListedPairs []string
 }
 
 // Parse - parse single block
@@ -179,15 +180,23 @@ func (p *Parser) GetEncodedBlock() []byte {
 }
 
 func New(api *tronApi.Api, log *zap.Logger, lists *integrations.TokenListsProvider, pairsCache *cache.PairsCache, converter *converters.FiatConverter, abiHolder *abi.Holder, jmcache *cache.JMPairsCache) *Parser {
+	whiteListedPairs := []string{
+		"TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE", // USDT-TRX
+		"TXX1i3BWKBuTxUmTERCztGyxSSpRagEcjX", // USDC-TRX
+		"TSJWbBJAS8HgQCMJfY5drVwYDa7JBAm6Es", // USDD-TRX
+		"TYukBQZ2XXCcRCReAUguyXncCWNY9CEiDQ", // JST-TRX
+	}
+
 	return &Parser{
-		jmcache:       jmcache,
-		fiatConverter: converter,
-		api:           api,
-		log:           log,
-		failedTx:      []tronApi.Transaction{},
-		txMap:         make(map[string]*tronApi.GetTransactionInfoByIdResp),
-		tokenLists:    lists,
-		pairsCache:    pairsCache,
-		abiHolder:     abiHolder,
+		jmcache:          jmcache,
+		fiatConverter:    converter,
+		api:              api,
+		log:              log,
+		failedTx:         []tronApi.Transaction{},
+		txMap:            make(map[string]*tronApi.GetTransactionInfoByIdResp),
+		tokenLists:       lists,
+		pairsCache:       pairsCache,
+		abiHolder:        abiHolder,
+		whiteListedPairs: whiteListedPairs,
 	}
 }
