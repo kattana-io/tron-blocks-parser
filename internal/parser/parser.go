@@ -2,12 +2,12 @@ package parser
 
 import (
 	"context"
+	models "github.com/kattana-io/models/pkg/storage"
 	"github.com/kattana-io/tron-blocks-parser/internal/abi"
 	"github.com/kattana-io/tron-blocks-parser/internal/cache"
 	"github.com/kattana-io/tron-blocks-parser/internal/converters"
 	"github.com/kattana-io/tron-blocks-parser/internal/integrations"
 	"github.com/kattana-io/tron-blocks-parser/internal/intermediate"
-	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/vmihailenco/msgpack/v5"
 	"go.uber.org/zap"

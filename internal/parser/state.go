@@ -1,19 +1,18 @@
 package parser
 
 import (
-	commonModels "github.com/kattana-io/models/pkg/storage"
-	"github.com/kattana-io/tron-blocks-parser/internal/models"
+	models "github.com/kattana-io/models/pkg/storage"
 	"sync"
 	"time"
 )
 
 type State struct {
-	DirectSwaps     []*commonModels.DirectSwap     `json:"direct_swaps"`
-	PairSwaps       []*commonModels.PairSwap       `json:"pair_swaps"`
-	Liquidities     []*commonModels.LiquidityEvent `json:"liquidity_events"`
-	Transfers       []*commonModels.TransferEvent  `json:"transfer_events"`
-	Pairs           []*models.NewPair              `json:"new_pairs"`
-	Block           *models.Block                  `json:"block"`
+	DirectSwaps     []*models.DirectSwap     `json:"direct_swaps"`
+	PairSwaps       []*models.PairSwap       `json:"pair_swaps"`
+	Liquidities     []*models.LiquidityEvent `json:"liquidity_events"`
+	Transfers       []*models.TransferEvent  `json:"transfer_events"`
+	Pairs           []*models.NewPair        `json:"new_pairs"`
+	Block           *models.Block            `json:"block"`
 	pairsLock       *sync.Mutex
 	tradesLock      *sync.Mutex
 	liquidityLock   *sync.Mutex
@@ -32,19 +31,19 @@ func CreateState(block *models.Block) *State {
 	}
 }
 
-func (i *State) AddTrade(trade *commonModels.PairSwap) {
+func (i *State) AddTrade(trade *models.PairSwap) {
 	i.tradesLock.Lock()
 	defer i.tradesLock.Unlock()
 	i.PairSwaps = append(i.PairSwaps, trade)
 }
 
-func (i *State) AddLiquidity(liquidity *commonModels.LiquidityEvent) {
+func (i *State) AddLiquidity(liquidity *models.LiquidityEvent) {
 	i.liquidityLock.Lock()
 	defer i.liquidityLock.Unlock()
 	i.Liquidities = append(i.Liquidities, liquidity)
 }
 
-func (i *State) AddTransferEvent(transfer *commonModels.TransferEvent) {
+func (i *State) AddTransferEvent(transfer *models.TransferEvent) {
 	i.transfersLock.Lock()
 	defer i.transfersLock.Unlock()
 	i.Transfers = append(i.Transfers, transfer)
@@ -64,7 +63,7 @@ func (i *State) RegisterNewPair(Factory string, Pair string, Klass string, netwo
 	})
 }
 
-func (i *State) AddDirectSwap(m *commonModels.DirectSwap) {
+func (i *State) AddDirectSwap(m *models.DirectSwap) {
 	i.directSwapsLock.Lock()
 	defer i.directSwapsLock.Unlock()
 	i.DirectSwaps = append(i.DirectSwaps, m)

@@ -6,7 +6,7 @@ require (
 	github.com/ethereum/go-ethereum v1.10.21
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/goccy/go-json v0.9.7
-	github.com/kattana-io/models v0.0.0-20220811174648-70b6c3f2ff91
+	github.com/kattana-io/models v1.0.0
 	github.com/kattana-io/tron-objects-api v1.0.0
 	github.com/segmentio/kafka-go v0.4.31
 	github.com/shopspring/decimal v1.3.1

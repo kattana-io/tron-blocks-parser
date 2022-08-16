@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	"github.com/goccy/go-json"
+	commonModels "github.com/kattana-io/models/pkg/storage"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
@@ -25,7 +26,7 @@ type FiatConverter struct {
 	stableCoinsMutex sync.Mutex
 	ratesMutex       sync.RWMutex
 	listMutex        sync.RWMutex
-	block            *models.Block
+	block            *commonModels.Block
 	log              *zap.Logger
 }
 
@@ -45,7 +46,7 @@ func (f *FiatConverter) ReadFile() {
 	f.rawQuotes = cFile.Quotes
 }
 
-func CreateConverter(client *redis.Client, log *zap.Logger, block *models.Block) *FiatConverter {
+func CreateConverter(client *redis.Client, log *zap.Logger, block *commonModels.Block) *FiatConverter {
 	converter := &FiatConverter{
 		log:             log,
 		redis:           client,
