@@ -5,8 +5,8 @@ package parser
  */
 
 import (
+	commonModels "github.com/kattana-io/models/pkg/storage"
 	"github.com/kattana-io/tron-blocks-parser/internal/helper"
-	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/shopspring/decimal"
 	"math/big"
@@ -29,13 +29,27 @@ const snapshotEvent = 0xcc7244d3
 const listingEvent = 0x9d42cb01
 const jmListingEvent = 0x0d3648bd
 const jmUniv2SwapEvent = 0xd78ad95f
+const jmUniV2SyncEventId = 0x1c411e9a // 0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1
 
-func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, wg *sync.WaitGroup) {
+func isBase58(input string) bool {
+	return input[0] == 'T'
+}
+
+func getAddressObject(pair string) *tronApi.Address {
+	if isBase58(pair) {
+		return tronApi.FromBase58(pair)
+	}
+	return tronApi.FromHex(pair)
+}
+
+func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, owner string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if len(log.Topics) < 1 {
 		return
 	}
 	methodId := getMethodId(log.Topics[0])
+
+	ownerAddress := getAddressObject(owner)
 	switch methodId {
 	//case transferEvent:
 	//	p.onTokenTransfer(log, tx, timestamp)
@@ -50,7 +64,9 @@ func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, wg *syn
 	case jmListingEvent:
 		p.onJmPairCreated(log, tx, timestamp)
 	case jmUniv2SwapEvent:
-		p.onJmSwapEvent(log, tx, timestamp)
+		p.onJmSwapEvent(log, tx, ownerAddress, timestamp)
+	case jmUniV2SyncEventId:
+		p.onJmSyncEvent(log, tx, ownerAddress, timestamp)
 	}
 }
 
@@ -86,7 +102,7 @@ func (p *Parser) onTokenTransfer(log tronApi.Log, tx string, timestamp int64) {
 	priceA := tokenAmount.Div(trxAmount)
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
 
-	tEvent := models.TransferEvent{
+	tEvent := commonModels.TransferEvent{
 		Chain:       Chain,
 		Contract:    Contract.ToBase58(),
 		BlockNumber: p.state.Block.Number.Uint64(),
@@ -131,7 +147,7 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
-	swap := models.PairSwap{
+	swap := commonModels.PairSwap{
 		Tx:          tx,
 		Date:        time.Unix(timestamp, 0),
 		Chain:       Chain,
@@ -183,7 +199,7 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
-	swap := models.PairSwap{
+	swap := commonModels.PairSwap{
 		Tx:          tx,
 		Date:        time.Unix(timestamp, 0),
 		Chain:       Chain,
@@ -246,6 +262,7 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 
 	// Calculate prices
 	priceA := trxAmount.Div(tokenAmount)
+	priceB := tokenAmount.Div(trxAmount)
 
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
 	p.fiatConverter.UpdateTokenUSDPrice(tokenA, priceAUSD)
@@ -256,7 +273,7 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
-	syncEvent := models.LiquidityEvent{
+	syncEvent := commonModels.LiquidityEvent{
 		BlockNumber: p.state.Block.Number.Uint64(),
 		Date:        time.Unix(timestamp, 0),
 		Tx:          tx,
@@ -267,8 +284,10 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 		Order:       0,
 		Reserve0:    tokenAmountRaw.String(),
 		Reserve1:    trxAmountRaw.String(),
-		Price:       priceA,
-		PriceUSD:    priceAUSD,
+		PriceA:      priceA,
+		PriceAUSD:   priceAUSD,
+		PriceB:      priceB,
+		PriceBUSD:   priceBUSD,
 		ReserveUSD:  valueUSD,
 	}
 	p.state.AddLiquidity(&syncEvent)

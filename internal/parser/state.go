@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"github.com/kattana-io/tron-blocks-parser/internal/models"
+	models "github.com/kattana-io/models/pkg/storage"
 	"sync"
 	"time"
 )

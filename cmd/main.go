@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/goccy/go-json"
+	commonModels "github.com/kattana-io/models/pkg/storage"
 	"github.com/kattana-io/tron-blocks-parser/internal/abi"
 	"github.com/kattana-io/tron-blocks-parser/internal/cache"
 	"github.com/kattana-io/tron-blocks-parser/internal/converters"
@@ -53,7 +54,7 @@ func main() {
 		/**
 		 * Decode block
 		 */
-		block := models.Block{}
+		block := commonModels.Block{}
 		err := json.Unmarshal(Value, &block)
 		if err != nil {
 			logger.Error(err.Error())

@@ -3,7 +3,7 @@ package parser
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/kattana-io/tron-blocks-parser/internal/models"
+	commonModels "github.com/kattana-io/models/pkg/storage"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
@@ -63,7 +63,98 @@ func GetUniV2Buy(Amount0In *big.Int, Amount0Out *big.Int, Amount1In *big.Int, Am
 	return false
 }
 
-func (p *Parser) onJmSwapEvent(log tronApi.Log, tx string, timestamp int64) {
+func (p *Parser) onJmSyncEvent(log tronApi.Log, tx string, owner *tronApi.Address, timestamp int64) {
+	event, err := p.abiHolder.JMPairAbi.EventByID(common.HexToHash(log.Topics[0]))
+
+	if err != nil {
+		p.log.Debug("Unpack error", zap.Error(err))
+		return
+	}
+	data := make(map[string]interface{})
+	if event != nil {
+		// Unpack log into map
+		err2 := event.Inputs.UnpackIntoMap(data, common.FromHex(log.Data))
+		if err2 != nil {
+			p.log.Debug("Unpack error", zap.Error(err2))
+			return
+		}
+		pair := tronApi.FromHex(log.Address)
+
+		reserves0 := data["reserve0"].(*big.Int)
+		reserves1 := data["reserve1"].(*big.Int)
+
+		tokenA, decimalsA, tokenB, decimalsB, ok := p.GetUniv2PairTokens(pair)
+		if !ok {
+			p.log.Error("Could not dissolve univ2 pair: " + tx)
+			return
+		}
+
+		// @todo verify price formula
+		priceA := decimal.Decimal{}
+		res0 := decimal.NewFromBigInt(reserves0, -int32(decimalsA))
+		if !res0.IsZero() {
+			priceA = decimal.NewFromBigInt(reserves1, -int32(decimalsB)).Div(res0)
+		}
+
+		priceB := decimal.Decimal{}
+		res1 := decimal.NewFromBigInt(reserves1, -int32(decimalsB))
+		if !res1.IsZero() {
+			priceB = decimal.NewFromBigInt(reserves0, -int32(decimalsA)).Div(res1)
+		}
+
+		priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
+
+		reservesUSD := p.calculateReservesInUSD(reserves0, reserves1, priceA, pair)
+
+		sync := commonModels.LiquidityEvent{
+			BlockNumber: p.state.Block.Number.Uint64(),
+			Date:        time.Unix(timestamp, 0),
+			Tx:          tx,
+			Pair:        pair.ToBase58(),
+			Chain:       Chain,
+			Klass:       "sync",
+			Wallet:      owner.ToBase58(),
+			Order:       0,
+			Reserve0:    reserves0.String(),
+			Reserve1:    reserves1.String(),
+			PriceA:      priceA,
+			PriceAUSD:   priceAUSD,
+			PriceB:      priceB,
+			PriceBUSD:   priceBUSD,
+			ReserveUSD:  reservesUSD,
+		}
+
+		p.state.AddLiquidity(&sync)
+	}
+}
+
+// Dissolve pair into tokens, calculate values
+func (p *Parser) calculateReservesInUSD(reserves0 *big.Int, reserves1 *big.Int, PriceA decimal.Decimal, address *tronApi.Address) decimal.Decimal {
+	// Dissolve pair
+	Pair, ok := p.jmcache.GetPair(Chain, address)
+	if !ok {
+		p.log.Warn("[calculateReservesInUSD] Could not get pair:" + address.ToBase58())
+		return decimal.NewFromInt(0)
+	}
+	tokenA := Pair.TokenA.Address
+	decimalsA := Pair.TokenA.Decimals
+	tokenB := Pair.TokenB.Address
+	decimalsB := Pair.TokenB.Decimals
+
+	// Get rate for A
+	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, PriceA)
+	if !priceAUSD.IsZero() {
+		return decimal.NewFromBigInt(reserves0, 0).Div(decimal.New(1, int32(decimalsA))).Mul(priceAUSD).Mul(decimal.NewFromInt(2))
+	}
+	if !priceBUSD.IsZero() {
+		return decimal.NewFromBigInt(reserves1, 0).Div(decimal.New(1, int32(decimalsB))).Mul(priceBUSD).Mul(decimal.NewFromInt(2))
+	}
+
+	// return zero
+	return decimal.NewFromInt(0)
+}
+
+func (p *Parser) onJmSwapEvent(log tronApi.Log, tx string, owner *tronApi.Address, timestamp int64) {
 	event, err := p.abiHolder.JMPairAbi.EventByID(common.HexToHash(log.Topics[0]))
 	if err != nil {
 		p.log.Debug("Unpack error", zap.Error(err))
@@ -115,7 +206,7 @@ func (p *Parser) onJmSwapEvent(log tronApi.Log, tx string, timestamp int64) {
 
 		PriceAUSD, PriceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, PriceA)
 
-		trade := models.PairSwap{
+		trade := commonModels.PairSwap{
 			Tx:          tx,
 			Date:        time.Unix(timestamp, 0),
 			Chain:       Chain,
@@ -130,7 +221,7 @@ func (p *Parser) onJmSwapEvent(log tronApi.Log, tx string, timestamp int64) {
 			PriceBUSD:   PriceBUSD,
 			ValueUSD:    calculateValueUSD(naturalA, naturalB, PriceAUSD, PriceBUSD),
 			Bot:         false,
-			Wallet:      "", // TODO: Get sender
+			Wallet:      owner.ToBase58(),
 			Order:       0,
 		}
 

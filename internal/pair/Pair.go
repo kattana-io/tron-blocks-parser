@@ -25,8 +25,12 @@ func NewPair(address *tronApi.Address, api *tronApi.Api, tokenList *integrations
 		return Pair{}, false
 	}
 
-	decimals := getTokenDecimals(token0Addr.ToBase58(), api, tokenList, log)
-	decimals2 := getTokenDecimals(token1Addr.ToBase58(), api, tokenList, log)
+	decimals, ok1 := tryGetTokenDecimals(token0Addr.ToBase58(), api, tokenList, 0, log)
+	decimals2, ok2 := tryGetTokenDecimals(token1Addr.ToBase58(), api, tokenList, 0, log)
+
+	if !ok1 || !ok2 {
+		return Pair{}, false
+	}
 
 	return Pair{
 		TokenA: Token{
@@ -40,16 +44,24 @@ func NewPair(address *tronApi.Address, api *tronApi.Api, tokenList *integrations
 	}, true
 }
 
-func getTokenDecimals(addr string, api *tronApi.Api, tokenList *integrations.TokenListsProvider, log *zap.Logger) int32 {
-	dec, ok := tokenList.GetDecimals(addr)
-	if ok {
-		return dec
+func tryGetTokenDecimals(addr string, api *tronApi.Api, tokenList *integrations.TokenListsProvider, try int64, log *zap.Logger) (int32, bool) {
+	// for first time try to get from cache
+	if try == 0 {
+		dec, ok := tokenList.GetDecimals(addr)
+		if ok {
+			return dec, ok
+		}
 	}
 
-	dec, err := api.GetTokenDecimals(addr)
-	if err != nil {
-		log.Error("getTokenDecimals: " + err.Error())
-		return 0
+	if try > 5 {
+		return 0, false
 	}
-	return dec
+
+	decimals, err := api.GetTokenDecimals(addr)
+	if err != nil {
+		try += 1
+		return tryGetTokenDecimals(addr, api, tokenList, try, log)
+	} else {
+		return decimals, true
+	}
 }
