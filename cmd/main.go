@@ -8,6 +8,7 @@ import (
 	"github.com/kattana-io/tron-blocks-parser/internal/abi"
 	"github.com/kattana-io/tron-blocks-parser/internal/cache"
 	"github.com/kattana-io/tron-blocks-parser/internal/converters"
+	"github.com/kattana-io/tron-blocks-parser/internal/helper"
 	"github.com/kattana-io/tron-blocks-parser/internal/integrations"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	"github.com/kattana-io/tron-blocks-parser/internal/parser"
@@ -19,9 +20,15 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
+	gracefulShutdown := make(chan os.Signal, 1)
+	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM)
+
 	/**
 	 * Handle run options like close signals
 	 */
@@ -34,6 +41,7 @@ func main() {
 	runner.Run()
 
 	api := createApi(logger)
+	quotesFile := helper.NewQuotesFile()
 	tokenLists := integrations.NewTokensListProvider(logger)
 	pairsCache := cache.NewPairsCache(redis, logger)
 	jmPairsCache := cache.CreateJMPairsCache(redis, api, tokenLists, logger)
@@ -63,7 +71,7 @@ func main() {
 		/**
 		 * Process block
 		 */
-		fiatConverter := converters.CreateConverter(redis, logger, &block)
+		fiatConverter := converters.CreateConverter(redis, logger, &block, quotesFile.Get())
 		p := parser.New(api, logger, tokenLists, pairsCache, fiatConverter, abiHolder, jmPairsCache)
 		ok := p.Parse(block)
 		if ok {
@@ -77,7 +85,29 @@ func main() {
 	t.OnFail(func(err error) {
 		logger.Fatal("failed to close reader: " + err.Error())
 	})
-	t.Listen()
+	go t.Listen()
+
+	<-gracefulShutdown
+
+	_, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	// we don't need the context variable here so let's just put underscore
+	defer handleTermination(publisher, t, cancel)
+}
+
+func handleTermination(publisher *transport.Publisher, t *transport.Consumer, cancel context.CancelFunc) {
+	fmt.Println("Start terminating process")
+
+	// close reader
+	t.Close()
+
+	// wait 6 seconds until last block will be processed
+	time.Sleep(6 * time.Second)
+
+	// close writer
+	publisher.Close()
+
+	fmt.Println("Finish")
+	cancel()
 }
 
 // Check if we should fill cache for dev purpose

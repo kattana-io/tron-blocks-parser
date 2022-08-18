@@ -266,7 +266,11 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
 	p.fiatConverter.UpdateTokenUSDPrice(tokenA, priceAUSD)
-	p.fiatConverter.UpdateTokenUSDPrice(trxTokenAddress, priceBUSD)
+
+	if p.isPairWhiteListed(pair) {
+		p.fiatConverter.UpdateTokenUSDPrice(trxTokenAddress, priceBUSD)
+	}
+
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
 	syncEvent := commonModels.LiquidityEvent{
@@ -287,6 +291,14 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 		ReserveUSD:  valueUSD,
 	}
 	p.state.AddLiquidity(&syncEvent)
+}
+
+func (p *Parser) isPairWhiteListed(pair *tronApi.Address) bool {
+	pairAddress := pair.ToBase58()
+	if _, ok := p.whiteListedPairs.Load(pairAddress); ok {
+		return true
+	}
+	return false
 }
 
 // onPairCreated - handle listing event

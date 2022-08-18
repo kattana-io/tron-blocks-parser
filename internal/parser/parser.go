@@ -16,16 +16,17 @@ import (
 )
 
 type Parser struct {
-	api           *tronApi.Api
-	log           *zap.Logger
-	failedTx      []tronApi.Transaction
-	txMap         map[string]*tronApi.GetTransactionInfoByIdResp
-	state         *State
-	tokenLists    *integrations.TokenListsProvider
-	pairsCache    *cache.PairsCache
-	fiatConverter *converters.FiatConverter
-	abiHolder     *abi.Holder
-	jmcache       *cache.JMPairsCache
+	api              *tronApi.Api
+	log              *zap.Logger
+	failedTx         []tronApi.Transaction
+	txMap            map[string]*tronApi.GetTransactionInfoByIdResp
+	state            *State
+	tokenLists       *integrations.TokenListsProvider
+	pairsCache       *cache.PairsCache
+	fiatConverter    *converters.FiatConverter
+	abiHolder        *abi.Holder
+	jmcache          *cache.JMPairsCache
+	whiteListedPairs *sync.Map
 }
 
 // Parse - parse single block
@@ -181,15 +182,22 @@ func (p *Parser) GetEncodedBlock() []byte {
 }
 
 func New(api *tronApi.Api, log *zap.Logger, lists *integrations.TokenListsProvider, pairsCache *cache.PairsCache, converter *converters.FiatConverter, abiHolder *abi.Holder, jmcache *cache.JMPairsCache) *Parser {
+	whiteListedPairs := sync.Map{}
+	whiteListedPairs.Store("TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE", true) // USDT-TRX
+	whiteListedPairs.Store("TXX1i3BWKBuTxUmTERCztGyxSSpRagEcjX", true) // USDC-TRX
+	whiteListedPairs.Store("TSJWbBJAS8HgQCMJfY5drVwYDa7JBAm6Es", true) // USDD-TRX
+	whiteListedPairs.Store("TYukBQZ2XXCcRCReAUguyXncCWNY9CEiDQ", true) // JST-TRX
+
 	return &Parser{
-		jmcache:       jmcache,
-		fiatConverter: converter,
-		api:           api,
-		log:           log,
-		failedTx:      []tronApi.Transaction{},
-		txMap:         make(map[string]*tronApi.GetTransactionInfoByIdResp),
-		tokenLists:    lists,
-		pairsCache:    pairsCache,
-		abiHolder:     abiHolder,
+		jmcache:          jmcache,
+		fiatConverter:    converter,
+		api:              api,
+		log:              log,
+		failedTx:         []tronApi.Transaction{},
+		txMap:            make(map[string]*tronApi.GetTransactionInfoByIdResp),
+		tokenLists:       lists,
+		pairsCache:       pairsCache,
+		abiHolder:        abiHolder,
+		whiteListedPairs: &whiteListedPairs,
 	}
 }

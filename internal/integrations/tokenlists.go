@@ -1,9 +1,11 @@
 package integrations
 
 import (
+	"fmt"
 	"github.com/goccy/go-json"
+	"github.com/kattana-io/tron-objects-api/pkg/api"
 	"go.uber.org/zap"
-	"net/http"
+	"io/ioutil"
 	"sync"
 )
 
@@ -13,44 +15,27 @@ import (
  */
 
 type Token struct {
-	Symbol   string `json:"symbol"`
-	Address  string `json:"address"`
-	ChainId  int    `json:"chainId"`
 	Decimals int    `json:"decimals"`
 	Name     string `json:"name"`
-	LogoURI  string `json:"logoURI"`
+	Symbol   string `json:"symbol"`
 }
 
-type TokenList struct {
-	Name    string  `json:"name"`
-	Tokens  []Token `json:"tokens"`
-	LogoURI string  `json:"logoURI"`
-	Version struct {
-		Patch int `json:"patch"`
-		Major int `json:"major"`
-		Minor int `json:"minor"`
-	} `json:"version"`
-	Timestamp int64 `json:"timestamp"`
-}
-
-const url = "https://list.justswap.link/justswap.json"
-
-func fetch() (*TokenList, error) {
-	res, err := http.Get(url)
-	defer res.Body.Close()
+func fetch() (map[string]Token, error) {
+	raw, err := ioutil.ReadFile("tokens.json")
+	if err != nil {
+		return nil, err
+	}
+	data := make(map[string]Token, 0)
+	err = json.Unmarshal(raw, &data)
+	if err != nil {
+		return nil, err
+	}
 
 	if err != nil {
 		return nil, err
 	}
 
-	data := TokenList{}
-	decoder := json.NewDecoder(res.Body)
-	err = decoder.Decode(&data)
-	if err != nil {
-		return nil, err
-	}
-
-	return &data, err
+	return data, err
 }
 
 type TokenListsProvider struct {
@@ -60,21 +45,29 @@ type TokenListsProvider struct {
 }
 
 func NewTokensListProvider(log *zap.Logger) *TokenListsProvider {
-	resp, err := fetch()
+	list, err := fetch()
 	ok := err == nil
+	if ok {
+		log.Info(fmt.Sprintf("Loaded %d tokens", len(list)))
+	}
 
 	return &TokenListsProvider{
 		log:      log,
 		ok:       ok,
-		decimals: createDecimalsList(resp),
+		decimals: createDecimalsList(list),
 	}
 }
 
-func createDecimalsList(resp *TokenList) *sync.Map {
+// ensure that we have check address
+func normalizeAddress(address string) string {
+	return api.FromBase58(address).ToBase58()
+}
+
+func createDecimalsList(resp map[string]Token) *sync.Map {
 	smp := sync.Map{}
 	if resp != nil {
-		for _, token := range resp.Tokens {
-			smp.Store(token.Address, token.Decimals)
+		for key, token := range resp {
+			smp.Store(normalizeAddress(key), token.Decimals)
 		}
 	}
 	return &smp
@@ -82,7 +75,7 @@ func createDecimalsList(resp *TokenList) *sync.Map {
 
 // GetDecimals - Fetch decimals from sync map
 func (t *TokenListsProvider) GetDecimals(address string) (int32, bool) {
-	val, ok := t.decimals.Load(address)
+	val, ok := t.decimals.Load(normalizeAddress(address))
 	if ok {
 		return int32(val.(int)), true
 	}
