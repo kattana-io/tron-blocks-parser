@@ -3,7 +3,7 @@ package integrations
 import (
 	"fmt"
 	"github.com/goccy/go-json"
-	"github.com/kattana-io/tron-objects-api/pkg/api"
+	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"sync"
@@ -58,24 +58,19 @@ func NewTokensListProvider(log *zap.Logger) *TokenListsProvider {
 	}
 }
 
-// ensure that we have check address
-func normalizeAddress(address string) string {
-	return api.FromBase58(address).ToBase58()
-}
-
 func createDecimalsList(resp map[string]Token) *sync.Map {
 	smp := sync.Map{}
 	if resp != nil {
 		for key, token := range resp {
-			smp.Store(normalizeAddress(key), token.Decimals)
+			smp.Store(tronApi.FromBase58(key).ToBase58(), token.Decimals)
 		}
 	}
 	return &smp
 }
 
 // GetDecimals - Fetch decimals from sync map
-func (t *TokenListsProvider) GetDecimals(address string) (int32, bool) {
-	val, ok := t.decimals.Load(normalizeAddress(address))
+func (t *TokenListsProvider) GetDecimals(address *tronApi.Address) (int32, bool) {
+	val, ok := t.decimals.Load(address.ToBase58())
 	if ok {
 		return int32(val.(int)), true
 	}

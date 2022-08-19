@@ -15,16 +15,18 @@ const trxDecimals = 6
 func (p *Parser) GetCachePairToken(address *tronApi.Address) (string, int32, bool) {
 	pair, err := p.pairsCache.Value(context.Background(), address.ToBase58())
 	if err != nil {
+
 		pInstance := intermediate.Pair{Address: address.ToBase58()}
-		tokenAddress, err := p.api.GetPairToken(address.ToHex())
+		hexTokenAddress, err := p.api.GetPairToken(address.ToHex())
 		if err != nil {
 			p.log.Error("GetCachePairToken: " + err.Error())
 			return "", 0, false
 		}
+		tokenAddr := tronApi.FromHex(hexTokenAddress)
 		// Check list
-		decimals, ok := p.tokenLists.GetDecimals(tokenAddress)
+		decimals, ok := p.tokenLists.GetDecimals(tokenAddr)
 		if ok {
-			pInstance.SetToken(tokenAddress, decimals)
+			pInstance.SetToken(tokenAddr.ToBase58(), decimals)
 		} else {
 			// Call API
 			token := trc20.New(p.api, address)
@@ -33,7 +35,7 @@ func (p *Parser) GetCachePairToken(address *tronApi.Address) (string, int32, boo
 				p.log.Error("GetCachePairToken: GetTokenDecimals: " + err.Error())
 				return "", 0, false
 			}
-			pInstance.SetToken(tokenAddress, dec)
+			pInstance.SetToken(tokenAddr.ToBase58(), dec)
 		}
 		err2 := p.pairsCache.Store(context.Background(), address.ToBase58(), pInstance, time.Hour*2)
 		if err2 != nil {
@@ -54,7 +56,7 @@ func (p *Parser) GetPairTokens(address *tronApi.Address) (string, int32, string,
 	// Cache miss
 	hexTokenAddress, err := p.api.GetPairToken(address.ToHex())
 	tokenAddr := tronApi.FromHex(hexTokenAddress)
-	cachedDecimals, ok := p.tokenLists.GetDecimals(tokenAddr.ToBase58())
+	cachedDecimals, ok := p.tokenLists.GetDecimals(tokenAddr)
 	if ok {
 		return tokenAddr.ToBase58(), cachedDecimals, trxTokenAddress, trxDecimals, true
 	}
