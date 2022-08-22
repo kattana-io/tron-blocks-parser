@@ -2,6 +2,7 @@ package parser
 
 import (
 	"context"
+	"fmt"
 	"github.com/kattana-io/tron-blocks-parser/internal/intermediate"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/kattana-io/tron-objects-api/pkg/trc20"
@@ -30,9 +31,9 @@ func (p *Parser) GetCachePairToken(address *tronApi.Address) (string, int32, boo
 		} else {
 			// Call API
 			token := trc20.New(p.api, address)
-			dec, err1 := token.GetDecimals()
-			if err1 != nil {
-				p.log.Error("GetCachePairToken: GetTokenDecimals: " + err1.Error())
+			dec, ok := token.TryToGetDecimals(0)
+			if !ok {
+				p.log.Error("TryToGetDecimals: tried 5 times w/o result")
 				return "", 0, false
 			}
 			pInstance.SetToken(tokenAddr.ToBase58(), dec)
@@ -55,6 +56,10 @@ func (p *Parser) GetPairTokens(address *tronApi.Address) (string, int32, string,
 
 	// Cache miss
 	hexTokenAddress, err := p.api.GetPairToken(address.ToHex())
+	if err != nil {
+		p.log.Error(fmt.Sprintf("GetPairToken: %s", err.Error()))
+		return "", 0, trxTokenAddress, trxDecimals, false
+	}
 	tokenAddr := tronApi.FromHex(hexTokenAddress)
 	cachedDecimals, ok := p.tokenLists.GetDecimals(tokenAddr)
 	if ok {
@@ -62,9 +67,9 @@ func (p *Parser) GetPairTokens(address *tronApi.Address) (string, int32, string,
 	}
 
 	token := trc20.New(p.api, address)
-	decimals, err = token.GetDecimals()
-	if err != nil {
-		p.log.Error("GetPairTokens: " + err.Error())
+	decimals, ok = token.TryToGetDecimals(0)
+	if !ok {
+		p.log.Error("TryToGetDecimals: tried 5 times w/o result")
 		return "", 0, trxTokenAddress, trxDecimals, false
 	}
 	return tokenAddr.ToBase58(), decimals, trxTokenAddress, trxDecimals, true

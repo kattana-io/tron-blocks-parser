@@ -3,7 +3,7 @@ package pair
 import (
 	"github.com/kattana-io/tron-blocks-parser/internal/integrations"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
-	justmoney "github.com/kattana-io/tron-objects-api/pkg/justomoney"
+	"github.com/kattana-io/tron-objects-api/pkg/justmoney"
 	"go.uber.org/zap"
 )
 
