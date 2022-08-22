@@ -32,14 +32,14 @@ func (p *Parser) GetCachePairToken(address *tronApi.Address) (string, int32, boo
 			token := trc20.New(p.api, address)
 			dec, err1 := token.GetDecimals()
 			if err1 != nil {
-				p.log.Error("GetCachePairToken: GetTokenDecimals: " + err.Error())
+				p.log.Error("GetCachePairToken: GetTokenDecimals: " + err1.Error())
 				return "", 0, false
 			}
 			pInstance.SetToken(tokenAddr.ToBase58(), dec)
 		}
 		err2 := p.pairsCache.Store(context.Background(), address.ToBase58(), pInstance, time.Hour*2)
 		if err2 != nil {
-			p.log.Error("Could not put into cache: " + err.Error())
+			p.log.Error("Could not put into cache: " + err2.Error())
 		}
 		return pInstance.Token.Address, pInstance.Token.Decimals, true
 	}
