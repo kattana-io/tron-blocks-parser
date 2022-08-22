@@ -53,11 +53,11 @@ func (s *SunswapStatisticsAdapter) fetchSSA() (*ssaResponse, error) {
 	url := "https://abc.ablesdxd.link/swap/v2/exchanges/scan?pageNo=1&orderBy=liquidity&desc=true&pageSize=1000"
 
 	res, err := http.Get(url)
-	defer res.Body.Close()
-
 	if err != nil {
 		return nil, err
 	}
+
+	defer res.Body.Close()
 
 	data := ssaResponse{}
 	decoder := json.NewDecoder(res.Body)

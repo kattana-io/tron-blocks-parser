@@ -5,7 +5,7 @@ import (
 	"github.com/goccy/go-json"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"go.uber.org/zap"
-	"io/ioutil"
+	"os"
 	"sync"
 )
 
@@ -21,7 +21,7 @@ type Token struct {
 }
 
 func fetch() (map[string]Token, error) {
-	raw, err := ioutil.ReadFile("tokens.json")
+	raw, err := os.ReadFile("tokens.json")
 	if err != nil {
 		return nil, err
 	}
