@@ -149,6 +149,8 @@ github.com/kattana-io/models v1.0.0 h1:/eG0fRJ6sJ0SDto0TNZ+TtGeQhOrt/k+Aipn09BTz
 github.com/kattana-io/models v1.0.0/go.mod h1:l+36R1PhHMCy+UwOeVvWG/YUBzaRz3HSRoOzX7LYQm4=
 github.com/kattana-io/tron-objects-api v1.2.0 h1:Y1fpZfgaC/rdzvcu1Hrg+E4kBWPnQ0JmIkfxoEHxxgE=
 github.com/kattana-io/tron-objects-api v1.2.0/go.mod h1:nXhQG5CRWQHqY9gF4g2pxk38D1mVz3oAY6Bw0MTAEqg=
+github.com/kattana-io/tron-objects-api v1.3.0 h1:Q4rORkDOYVpFSn6RAqmXY+mVJnNjob83b0SnOHLNf64=
+github.com/kattana-io/tron-objects-api v1.3.0/go.mod h1:nXhQG5CRWQHqY9gF4g2pxk38D1mVz3oAY6Bw0MTAEqg=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
 github.com/klauspost/compress v1.14.2 h1:S0OHlFk/Gbon/yauFJ4FfJJF5V0fc5HbBTJazi28pRw=
 github.com/klauspost/compress v1.14.2/go.mod h1:/3/Vjq9QcHkK5uEr5lBEmyoZ1iFhe47etQ6QUkpK6sk=
