@@ -30,7 +30,7 @@ func (p *Parser) GetCachePairToken(address *tronApi.Address) (string, int32, boo
 			pInstance.SetToken(tokenAddr.ToBase58(), decimals)
 		} else {
 			// Call API
-			token := trc20.New(p.api, address)
+			token := trc20.New(p.api, tokenAddr)
 			dec, ok := token.TryToGetDecimals(0)
 			if !ok {
 				p.log.Error("TryToGetDecimals: tried 5 times w/o result")
