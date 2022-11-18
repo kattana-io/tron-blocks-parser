@@ -23,6 +23,10 @@ func (p *Parser) GetCachePairToken(address *tronApi.Address) (string, int32, boo
 			p.log.Error("GetCachePairToken: " + err.Error())
 			return "", 0, false
 		}
+		if hexTokenAddress == "" {
+			p.log.Error("Couldn't get token address for pair: " + address.ToBase58())
+			return "", 0, false
+		}
 		tokenAddr := tronApi.FromHex(hexTokenAddress)
 		// Check list
 		decimals, ok := p.tokenLists.GetDecimals(tokenAddr)
@@ -60,13 +64,17 @@ func (p *Parser) GetPairTokens(address *tronApi.Address) (string, int32, string,
 		p.log.Error(fmt.Sprintf("GetPairToken: %s", err.Error()))
 		return "", 0, trxTokenAddress, trxDecimals, false
 	}
+	if hexTokenAddress == "" {
+		p.log.Error("Couldn't get token address for pair: " + address.ToBase58())
+		return "", 0, trxTokenAddress, trxDecimals, false
+	}
 	tokenAddr := tronApi.FromHex(hexTokenAddress)
 	cachedDecimals, ok := p.tokenLists.GetDecimals(tokenAddr)
 	if ok {
 		return tokenAddr.ToBase58(), cachedDecimals, trxTokenAddress, trxDecimals, true
 	}
 
-	token := trc20.New(p.api, address)
+	token := trc20.New(p.api, tokenAddr)
 	decimals, ok = token.TryToGetDecimals(0)
 	if !ok {
 		p.log.Error("TryToGetDecimals: tried 5 times w/o result")
