@@ -51,8 +51,8 @@ func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, owner s
 
 	ownerAddress := getAddressObject(owner)
 	switch methodId {
-	//case transferEvent:
-	//	p.onTokenTransfer(log, tx, timestamp)
+	case transferEvent:
+		p.onTokenTransfer(log, tx, timestamp)
 	case tokenPurchaseEvent:
 		p.onTokenPurchase(log, tx, timestamp)
 	case trxPurchaseEvent:
