@@ -147,6 +147,8 @@ github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024/go.mod h1
 github.com/jstemmer/go-junit-report v0.9.1/go.mod h1:Brl9GWCQeLvo8nXZwPNNblvFj/XSXhF0NWZEnDohbsk=
 github.com/kattana-io/models v1.0.0 h1:/eG0fRJ6sJ0SDto0TNZ+TtGeQhOrt/k+Aipn09BTzYc=
 github.com/kattana-io/models v1.0.0/go.mod h1:l+36R1PhHMCy+UwOeVvWG/YUBzaRz3HSRoOzX7LYQm4=
+github.com/kattana-io/models v1.2.8 h1:RXh3GuKUz0kE25AMX8+bmdTAXedqI1RsA634Wmh2eB4=
+github.com/kattana-io/models v1.2.8/go.mod h1:l+36R1PhHMCy+UwOeVvWG/YUBzaRz3HSRoOzX7LYQm4=
 github.com/kattana-io/tron-objects-api v1.2.0 h1:Y1fpZfgaC/rdzvcu1Hrg+E4kBWPnQ0JmIkfxoEHxxgE=
 github.com/kattana-io/tron-objects-api v1.2.0/go.mod h1:nXhQG5CRWQHqY9gF4g2pxk38D1mVz3oAY6Bw0MTAEqg=
 github.com/kattana-io/tron-objects-api v1.3.0 h1:Q4rORkDOYVpFSn6RAqmXY+mVJnNjob83b0SnOHLNf64=
