@@ -51,8 +51,9 @@ func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, owner s
 
 	ownerAddress := getAddressObject(owner)
 	switch methodId {
-	//case transferEvent:
-	//	p.onTokenTransfer(log, tx, timestamp)
+	case transferEvent:
+		//p.onTokenTransfer(log, tx, timestamp)
+		p.processHolder(log, tx)
 	case tokenPurchaseEvent:
 		p.onTokenPurchase(log, tx, timestamp)
 	case trxPurchaseEvent:
@@ -115,6 +116,25 @@ func (p *Parser) onTokenTransfer(log tronApi.Log, tx string, timestamp int64) {
 		ValueUSD:    calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD),
 	}
 	p.state.AddTransferEvent(&tEvent)
+}
+
+func (p *Parser) processHolder(log tronApi.Log, tx string) {
+	amounts, ok := big.NewInt(0).SetString(log.Data, 16)
+	if !ok || amounts.Cmp(big.NewInt(0)) == 0 {
+		return
+	}
+
+	token := tronApi.FromHex(log.Address).ToBase58()
+	from := tronApi.FromHex(tronApi.TrimZeroes(log.Topics[1])).ToBase58()
+	to := tronApi.FromHex(tronApi.TrimZeroes(log.Topics[2])).ToBase58()
+
+	h := commonModels.Holder{
+		Token: token,
+		From:  from,
+		To:    to,
+		Tx:    tx,
+	}
+	p.state.AddProcessHolder(&h)
 }
 
 // topics - buyer,trx_sold,tokens_bought

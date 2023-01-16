@@ -12,12 +12,14 @@ type State struct {
 	Liquidities     []*models.LiquidityEvent `json:"liquidity_events"`
 	Transfers       []*models.TransferEvent  `json:"transfer_events"`
 	Pairs           []*models.NewPair        `json:"new_pairs"`
+	Holders         []*models.Holder         `json:"holders"`
 	Block           *models.Block            `json:"block"`
 	pairsLock       *sync.Mutex
 	tradesLock      *sync.Mutex
 	liquidityLock   *sync.Mutex
 	transfersLock   *sync.Mutex
 	directSwapsLock *sync.Mutex
+	holdersLock     *sync.Mutex
 }
 
 func CreateState(block *models.Block) *State {
@@ -28,6 +30,7 @@ func CreateState(block *models.Block) *State {
 		liquidityLock:   &sync.Mutex{},
 		tradesLock:      &sync.Mutex{},
 		directSwapsLock: &sync.Mutex{},
+		holdersLock:     &sync.Mutex{},
 	}
 }
 
@@ -67,4 +70,10 @@ func (i *State) AddDirectSwap(m *models.DirectSwap) {
 	i.directSwapsLock.Lock()
 	defer i.directSwapsLock.Unlock()
 	i.DirectSwaps = append(i.DirectSwaps, m)
+}
+
+func (i *State) AddProcessHolder(h *models.Holder) {
+	i.holdersLock.Lock()
+	defer i.holdersLock.Unlock()
+	i.Holders = append(i.Holders, h)
 }
