@@ -13,10 +13,3 @@ func TronValueToDecimal(data string) *decimal.Decimal {
 
 	return &rowAmount
 }
-
-func Trim64BytesTo40(input string) string {
-	if len(input) == 64 {
-		return input[24:]
-	}
-	return input
-}

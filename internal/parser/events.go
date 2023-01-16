@@ -125,8 +125,8 @@ func (p *Parser) processHolder(log tronApi.Log, tx string) {
 	}
 
 	token := tronApi.FromHex(log.Address).ToBase58()
-	from := tronApi.FromHex(helper.Trim64BytesTo40(log.Topics[1])).ToBase58()
-	to := tronApi.FromHex(helper.Trim64BytesTo40(log.Topics[2])).ToBase58()
+	from := tronApi.FromHex(tronApi.TrimZeroes(log.Topics[1])).ToBase58()
+	to := tronApi.FromHex(tronApi.TrimZeroes(log.Topics[2])).ToBase58()
 
 	h := commonModels.Holder{
 		Token: token,
@@ -140,7 +140,7 @@ func (p *Parser) processHolder(log tronApi.Log, tx string) {
 // topics - buyer,trx_sold,tokens_bought
 func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 	pair := tronApi.FromHex(log.Address)
-	buyer := helper.Trim64BytesTo40(log.Topics[1])
+	buyer := tronApi.TrimZeroes(log.Topics[1])
 	// Dissolve pair
 	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(pair)
 
@@ -191,7 +191,7 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 // topics - buyer, tokens_sold, trx_bought
 func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	pair := tronApi.FromHex(log.Address)
-	buyer := helper.Trim64BytesTo40(log.Topics[1])
+	buyer := tronApi.TrimZeroes(log.Topics[1])
 	// Dissolve pair
 	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(pair)
 
@@ -258,7 +258,7 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 		return
 	}
 	pair := tronApi.FromHex(log.Address)
-	operator := helper.Trim64BytesTo40(log.Topics[1])
+	operator := tronApi.TrimZeroes(log.Topics[1])
 
 	// Dissolve pair
 	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(pair)
@@ -325,7 +325,7 @@ func (p *Parser) isPairWhiteListed(pair *tronApi.Address) bool {
 // topics - exchange, token
 func (p *Parser) onPairCreated(log tronApi.Log, tx string, timestamp int64) {
 	factory := tronApi.FromHex(log.Address)
-	pair := tronApi.FromHex(helper.Trim64BytesTo40(log.Topics[2]))
+	pair := tronApi.FromHex(tronApi.TrimZeroes(log.Topics[2]))
 	//token := log.Topics[1]
 	nodeUrl := os.Getenv("SOLIDITY_FULL_NODE_URL")
 	p.state.RegisterNewPair(factory.ToBase58(), pair.ToBase58(), "sunswap", Chain, nodeUrl, time.Unix(timestamp, 0))
