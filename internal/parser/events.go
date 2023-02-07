@@ -137,6 +137,17 @@ func (p *Parser) processHolder(log tronApi.Log, tx string) {
 	p.state.AddProcessHolder(&h)
 }
 
+func (p *Parser) parseTransferContract(transaction tronApi.Transaction) {
+	h := commonModels.Holder{
+		Token:  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+		From:   transaction.RawData.Contract[0].Parameter.Value.OwnerAddress,
+		To:     transaction.RawData.Contract[0].Parameter.Value.ToAddress,
+		Tx:     transaction.TxID,
+		Amount: transaction.RawData.Contract[0].Parameter.Value.Amount,
+	}
+	p.state.AddProcessHolder(&h)
+}
+
 // topics - buyer,trx_sold,tokens_bought
 func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 	pair := tronApi.FromHex(log.Address)
