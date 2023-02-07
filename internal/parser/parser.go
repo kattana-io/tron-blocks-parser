@@ -85,6 +85,7 @@ func (p *Parser) parseTransaction(transaction tronApi.Transaction) {
 	// Fetch transfer contracts
 	if !isNotTransferCall(&transaction) && len(transaction.RawData.Contract) > 0 {
 		p.parseTransferContract(transaction)
+		return
 	}
 	// Fetch transaction with logs
 	resp, err := p.api.GetTransactionInfoById(transaction.TxID)
