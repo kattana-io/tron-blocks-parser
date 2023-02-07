@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	models "github.com/kattana-io/models/pkg/storage"
 	"github.com/kattana-io/tron-blocks-parser/internal/abi"
 	"github.com/kattana-io/tron-blocks-parser/internal/cache"
@@ -44,11 +45,12 @@ func (p *Parser) Parse(block models.Block) bool {
 
 	cnt := 0
 	for _, transaction := range resp.Transactions {
-		if (isSuccessCall(&transaction) || hasContractCalls(&transaction)) && isNotTransferCall(&transaction) {
+		if isSuccessCall(&transaction) || hasContractCalls(&transaction) {
 			cnt += 1
 			p.parseTransaction(transaction)
 		}
 	}
+	p.log.Info(fmt.Sprintf("Parsing transactions: %v", cnt))
 
 	if len(p.failedTx) > 0 {
 		for _, tx := range p.failedTx {
@@ -80,6 +82,11 @@ func isSuccessCall(transaction *tronApi.Transaction) bool {
 
 // parseTransaction - process single transactions
 func (p *Parser) parseTransaction(transaction tronApi.Transaction) {
+	// Fetch transfer contracts
+	if !isNotTransferCall(&transaction) && len(transaction.RawData.Contract) > 0 {
+		p.parseTransferContract(transaction)
+		return
+	}
 	// Fetch transaction with logs
 	resp, err := p.api.GetTransactionInfoById(transaction.TxID)
 	if err != nil {
