@@ -145,8 +145,8 @@ github.com/inconshreveable/mousetrap v1.0.0 h1:Z8tu5sraLXCXIcARxBp/8cbvlwVa7Z1NH
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024/go.mod h1:6v2b51hI/fHJwM22ozAgKL4VKDeJcHhJFhtBdhmNjmU=
 github.com/jstemmer/go-junit-report v0.9.1/go.mod h1:Brl9GWCQeLvo8nXZwPNNblvFj/XSXhF0NWZEnDohbsk=
-github.com/kattana-io/models v1.2.10 h1:sXpN3nhBOrvvFjmcRMfUdyAEUTfAGyM1Y2xpu57KE/I=
-github.com/kattana-io/models v1.2.10/go.mod h1:l+36R1PhHMCy+UwOeVvWG/YUBzaRz3HSRoOzX7LYQm4=
+github.com/kattana-io/models v1.3.2 h1:+huM1U1iteUhoSGdnIsWU3jVX9YqUJdFF/bWx8odpHs=
+github.com/kattana-io/models v1.3.2/go.mod h1:l+36R1PhHMCy+UwOeVvWG/YUBzaRz3HSRoOzX7LYQm4=
 github.com/kattana-io/tron-objects-api v1.3.3 h1:xCH4vAzTdCdjjWgRutSYjZpNLfQHAXw8tH2VqzggD5Y=
 github.com/kattana-io/tron-objects-api v1.3.3/go.mod h1:nXhQG5CRWQHqY9gF4g2pxk38D1mVz3oAY6Bw0MTAEqg=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=

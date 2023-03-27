@@ -143,8 +143,8 @@ func (p *Parser) processHolder(log tronApi.Log, tx string) {
 func (p *Parser) parseTransferContract(transaction tronApi.Transaction) {
 	h := commonModels.Holder{
 		Token:  NATIVE_TOKEN,
-		From:   transaction.RawData.Contract[0].Parameter.Value.OwnerAddress,
-		To:     transaction.RawData.Contract[0].Parameter.Value.ToAddress,
+		From:   tronApi.FromHex(tronApi.TrimZeroes(transaction.RawData.Contract[0].Parameter.Value.OwnerAddress)).ToBase58(),
+		To:     tronApi.FromHex(tronApi.TrimZeroes(transaction.RawData.Contract[0].Parameter.Value.ToAddress)).ToBase58(),
 		Tx:     transaction.TxID,
 		Amount: transaction.RawData.Contract[0].Parameter.Value.Amount,
 	}

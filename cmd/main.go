@@ -49,6 +49,7 @@ func main() {
 
 	logger.Info(fmt.Sprintf("Start parser in %s mode", mode))
 	publisher := transport.NewPublisher("parser.sys.parsed", os.Getenv("KAFKA"), logger)
+	publisherHolders := transport.NewPublisher("holders_blocks", os.Getenv("KAFKA"), logger)
 	t := transport.CreateConsumer(topic, logger)
 	t.OnBlock(func(Value []byte) bool {
 		/**
@@ -75,7 +76,10 @@ func main() {
 		p := parser.New(api, logger, tokenLists, pairsCache, fiatConverter, abiHolder, jmPairsCache)
 		ok := p.Parse(block)
 		if ok {
+			encodedHolders := p.GetEncodedHolders()
+			p.DeleteHolders()
 			publisher.PublishBlock(context.Background(), p.GetEncodedBlock())
+			publisherHolders.PublishBlock(context.Background(), encodedHolders)
 			return true
 		} else {
 			return publisher.PublishFailedBlock(context.Background(), block)
@@ -137,7 +141,7 @@ func createApi(logger *zap.Logger) *tronApi.Api {
 	return api
 }
 
-//getRunningMode - decide should we consumer live or history
+// getRunningMode - decide should we consumer live or history
 func getRunningMode() (mode string, topic models.Topics) {
 	mode = viper.GetString("mode")
 

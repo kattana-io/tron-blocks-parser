@@ -118,6 +118,25 @@ func (p *Parser) GetEncodedBlock() []byte {
 	return b
 }
 
+func (p *Parser) GetEncodedHolders() []byte {
+	holdersBlock := &models.HoldersBlock{
+		Block:     p.state.Block.Number.Uint64(),
+		Timestamp: int64(p.state.Block.Timestamp),
+		Chain:     p.state.Block.Network,
+		Holders:   p.state.Holders,
+	}
+	b, err := msgpack.Marshal(holdersBlock)
+	if err != nil {
+		p.log.Error("PublishHolders: " + err.Error())
+		return nil
+	}
+	return b
+}
+
+func (p *Parser) DeleteHolders() {
+	p.state.Holders = nil
+}
+
 func New(api *tronApi.Api, log *zap.Logger, lists *integrations.TokenListsProvider, pairsCache *cache.PairsCache, converter *converters.FiatConverter, abiHolder *abi.Holder, jmcache *cache.JMPairsCache) *Parser {
 	whiteListedPairs := sync.Map{}
 	whiteListedPairs.Store("TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE", true) // USDT-TRX
