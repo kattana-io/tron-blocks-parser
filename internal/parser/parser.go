@@ -118,13 +118,13 @@ func (p *Parser) GetEncodedBlock() []byte {
 	return b
 }
 
-func (p *Parser) GetEncodedHolders(mode string) []byte {
+func (p *Parser) GetEncodedHolders() []byte {
 	holdersBlock := &models.HoldersBlock{
 		Block:     p.state.Block.Number.Uint64(),
 		Timestamp: int64(p.state.Block.Timestamp),
 		Chain:     p.state.Block.Network,
 		Holders:   p.state.Holders,
-		Notify:    mode != "HISTORY",
+		Notify:    p.state.Block.Notify,
 	}
 	b, err := msgpack.Marshal(holdersBlock)
 	if err != nil {

@@ -76,7 +76,7 @@ func main() {
 		p := parser.New(api, logger, tokenLists, pairsCache, fiatConverter, abiHolder, jmPairsCache)
 		ok := p.Parse(block)
 		if ok {
-			encodedHolders := p.GetEncodedHolders(mode)
+			encodedHolders := p.GetEncodedHolders()
 			p.DeleteHolders()
 			publisher.PublishBlock(context.Background(), p.GetEncodedBlock())
 			publisherHolders.PublishBlock(context.Background(), encodedHolders)
