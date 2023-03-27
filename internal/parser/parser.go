@@ -124,6 +124,7 @@ func (p *Parser) GetEncodedHolders() []byte {
 		Timestamp: int64(p.state.Block.Timestamp),
 		Chain:     p.state.Block.Network,
 		Holders:   p.state.Holders,
+		Notify:    p.state.Block.Notify,
 	}
 	b, err := msgpack.Marshal(holdersBlock)
 	if err != nil {
