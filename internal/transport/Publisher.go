@@ -3,7 +3,6 @@ package transport
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/goccy/go-json"
 	models "github.com/kattana-io/models/pkg/storage"
