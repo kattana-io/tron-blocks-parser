@@ -54,12 +54,12 @@ func (t *Consumer) Close() {
 func CreateConsumer(topic models.Topics, log *zap.Logger) *Consumer {
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:        []string{os.Getenv("KAFKA")},
-		Topic:          string(topic),
-		GroupID:        "parsers",
-		MinBytes:       1e3,         // 1KB
-		MaxBytes:       50e6,        // 50MB
-		CommitInterval: time.Second, // flushes commits to Kafka every second
+		Brokers:  []string{os.Getenv("KAFKA")},
+		Topic:    string(topic),
+		GroupID:  "parsers",
+		MinBytes: 1e3,  // 1KB
+		MaxBytes: 50e6, // 50MB
+		MaxWait:  1 * time.Second,
 	})
 
 	log.Info("Connected to topic: " + string(topic))

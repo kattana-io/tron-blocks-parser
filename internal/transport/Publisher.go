@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"fmt"
+
 	"github.com/goccy/go-json"
 	models "github.com/kattana-io/models/pkg/storage"
 	"github.com/segmentio/kafka-go"
@@ -20,6 +21,7 @@ func NewPublisher(topic string, address string, log *zap.Logger) *Publisher {
 		Addr:     kafka.TCP(address),
 		Topic:    topic,
 		Balancer: &kafka.LeastBytes{},
+		Async:    true,
 	}
 
 	return &Publisher{
@@ -47,6 +49,7 @@ func (p *Publisher) PublishFailedBlock(ctx context.Context, block models.Block) 
 		Addr:     kafka.TCP(p.address),
 		Topic:    "failed_blocks",
 		Balancer: &kafka.LeastBytes{},
+		Async:    true,
 	}
 	Value, err := json.Marshal(block)
 	if err != nil {
