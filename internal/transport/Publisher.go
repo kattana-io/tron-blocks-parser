@@ -3,6 +3,8 @@ package transport
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/goccy/go-json"
 	models "github.com/kattana-io/models/pkg/storage"
 	"github.com/segmentio/kafka-go"
@@ -17,9 +19,10 @@ type Publisher struct {
 
 func NewPublisher(topic string, address string, log *zap.Logger) *Publisher {
 	w := &kafka.Writer{
-		Addr:     kafka.TCP(address),
-		Topic:    topic,
-		Balancer: &kafka.LeastBytes{},
+		Addr:         kafka.TCP(address),
+		Topic:        topic,
+		Balancer:     &kafka.LeastBytes{},
+		BatchTimeout: 10 * time.Millisecond,
 	}
 
 	return &Publisher{
