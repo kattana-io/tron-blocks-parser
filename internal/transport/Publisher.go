@@ -19,10 +19,10 @@ type Publisher struct {
 
 func NewPublisher(topic string, address string, log *zap.Logger) *Publisher {
 	w := &kafka.Writer{
-		Addr:         kafka.TCP(address),
-		Topic:        topic,
-		Balancer:     &kafka.LeastBytes{},
-		BatchTimeout: 10 * time.Millisecond,
+		Addr:     kafka.TCP(address),
+		Topic:    topic,
+		Balancer: &kafka.LeastBytes{},
+		Async:    true,
 	}
 
 	return &Publisher{
@@ -50,6 +50,7 @@ func (p *Publisher) PublishFailedBlock(ctx context.Context, block models.Block) 
 		Addr:     kafka.TCP(p.address),
 		Topic:    "failed_blocks",
 		Balancer: &kafka.LeastBytes{},
+		Async:    true,
 	}
 	Value, err := json.Marshal(block)
 	if err != nil {
