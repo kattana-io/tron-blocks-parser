@@ -25,6 +25,8 @@ import (
 	"time"
 )
 
+const shutdownTimeout = 5
+
 func main() {
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM)
@@ -40,7 +42,7 @@ func main() {
 	redis := runner.Redis()
 	runner.Run()
 
-	api := createApi(logger)
+	api := createAPI(logger)
 	quotesFile := helper.NewQuotesFile()
 	tokenLists := integrations.NewTokensListProvider(logger)
 	pairsCache := cache.NewPairsCache(redis, logger)
@@ -92,26 +94,15 @@ func main() {
 	go t.Listen()
 
 	<-gracefulShutdown
-
-	_, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	// we don't need the context variable here so let's just put underscore
-	defer handleTermination(publisher, t, cancel)
+	handleTermination(publisher, t)
 }
 
-func handleTermination(publisher *transport.Publisher, t *transport.Consumer, cancel context.CancelFunc) {
+func handleTermination(publisher *transport.Publisher, reader *transport.Consumer) {
 	fmt.Println("Start terminating process")
-
-	// close reader
-	t.Close()
-
-	// wait 6 seconds until last block will be processed
-	time.Sleep(6 * time.Second)
-
-	// close writer
+	reader.Close()
 	publisher.Close()
-
+	time.Sleep(shutdownTimeout * time.Second)
 	fmt.Println("Finish")
-	cancel()
 }
 
 // Check if we should fill cache for dev purpose
@@ -127,17 +118,17 @@ func shouldWarmupCache(pairsCache *cache.PairsCache) {
 	}
 }
 
-func createApi(logger *zap.Logger) *tronApi.Api {
-	nodeUrl := os.Getenv("SOLIDITY_FULL_NODE_URL")
+func createAPI(logger *zap.Logger) *tronApi.Api {
+	nodeURL := os.Getenv("SOLIDITY_FULL_NODE_URL")
 	var provider url.ApiUrlProvider
-	if nodeUrl == "" {
+	if nodeURL == "" {
 		logger.Info("Using trongrid adapter")
 		provider = url.NewTrongridUrlProvider()
 	} else {
 		logger.Info("Using node adapter")
-		provider = url.NewNodeUrlProvider(nodeUrl)
+		provider = url.NewNodeUrlProvider(nodeURL)
 	}
-	api := tronApi.NewApi(nodeUrl, logger, provider)
+	api := tronApi.NewApi(nodeURL, logger, provider)
 	return api
 }
 
@@ -146,9 +137,9 @@ func getRunningMode() (mode string, topic models.Topics) {
 	mode = viper.GetString("mode")
 
 	if mode == "HISTORY" {
-		topic = models.TRON_HISTORY
+		topic = models.TronHistory
 	} else {
-		topic = models.TRON_LIVE
+		topic = models.TronLive
 	}
 	return mode, topic
 }

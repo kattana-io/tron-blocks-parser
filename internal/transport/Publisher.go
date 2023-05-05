@@ -16,7 +16,7 @@ type Publisher struct {
 	address string
 }
 
-func NewPublisher(topic string, address string, log *zap.Logger) *Publisher {
+func NewPublisher(topic, address string, log *zap.Logger) *Publisher {
 	w := &kafka.Writer{
 		Addr:     kafka.TCP(address),
 		Topic:    topic,

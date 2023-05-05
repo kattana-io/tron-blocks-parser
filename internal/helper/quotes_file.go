@@ -7,7 +7,7 @@ package helper
 import (
 	"github.com/goccy/go-json"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
-	"io/ioutil"
+	"os"
 	"sync"
 )
 
@@ -17,7 +17,7 @@ type QuotesFile struct {
 }
 
 func NewQuotesFile() *QuotesFile {
-	raw, err := ioutil.ReadFile("quotes.json")
+	raw, err := os.ReadFile("quotes.json")
 	if err != nil {
 		return nil
 	}

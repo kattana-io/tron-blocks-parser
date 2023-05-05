@@ -1,6 +1,7 @@
 package integrations
 
 import (
+	"context"
 	"github.com/goccy/go-json"
 	"github.com/kattana-io/tron-blocks-parser/internal/intermediate"
 	"net/http"
@@ -27,14 +28,14 @@ type SSAListItem struct {
 	IsValid      int    `json:"isValid"`
 	TokenName    string `json:"tokenName"`
 	Volume24Hrs  string `json:"volume24hrs"`
-	TxId         string `json:"txId"`
+	TxID         string `json:"txId"`
 	Liquidity    string `json:"liquidity"`
 	Volume7D     string `json:"volume7d"`
 	Type         string `json:"type"`
 	TokenAddress string `json:"tokenAddress"`
-	TokenLogoUrl string `json:"tokenLogoUrl"`
+	TokenLogoURL string `json:"tokenLogoUrl"`
 	TokenDecimal int    `json:"tokenDecimal"`
-	Id           int    `json:"id"`
+	ID           int    `json:"id"`
 	Fees24Hrs    string `json:"fees24hrs"`
 }
 
@@ -51,8 +52,9 @@ type ssaResponse struct {
 // Idea is to load locally top-1000 pairs by liquidity to populate cache once
 func (s *SunswapStatisticsAdapter) fetchSSA() (*ssaResponse, error) {
 	url := "https://abc.ablesdxd.link/swap/v2/exchanges/scan?pageNo=1&orderBy=liquidity&desc=true&pageSize=1000"
-
-	res, err := http.Get(url)
+	cli := &http.Client{}
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, url, http.NoBody)
+	res, err := cli.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -78,12 +80,12 @@ func NewSunswapStatisticsAdapter() *SunswapStatisticsAdapter {
 		adapter.Ok = false
 		return &adapter
 	}
-	for _, pair := range resp.Data.List {
+	for i := range resp.Data.List {
 		adapter.TokenPairs = append(adapter.TokenPairs, intermediate.Pair{
-			Address: pair.Address,
+			Address: resp.Data.List[i].Address,
 			Token: intermediate.Token{
-				Address:  pair.TokenAddress,
-				Decimals: int32(pair.TokenDecimal),
+				Address:  resp.Data.List[i].TokenAddress,
+				Decimals: int32(resp.Data.List[i].TokenDecimal),
 			},
 		})
 	}

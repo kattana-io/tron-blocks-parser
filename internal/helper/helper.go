@@ -6,9 +6,11 @@ import (
 	"math/big"
 )
 
+const TronBase = 16
+
 func TronValueToDecimal(data string) *decimal.Decimal {
 	val := big.Int{}
-	val.SetString(tronApi.TrimZeroes(data), 16)
+	val.SetString(tronApi.TrimZeroes(data), TronBase)
 	rowAmount := decimal.NewFromBigInt(&val, 0)
 
 	return &rowAmount

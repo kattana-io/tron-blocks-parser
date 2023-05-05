@@ -29,7 +29,10 @@ type FiatConverter struct {
 	log              *zap.Logger
 }
 
-const StableCoin = 2
+const (
+	StableCoin   = 2
+	RedisTimeout = 30
+)
 
 func CreateConverter(client *redis.Client, log *zap.Logger, block *commonModels.Block, rawQuotes []models.QuotePair) *FiatConverter {
 	converter := &FiatConverter{
@@ -60,18 +63,7 @@ func CreateConverter(client *redis.Client, log *zap.Logger, block *commonModels.
 	return converter
 }
 
-// check before & after condition
-func (f *FiatConverter) skipQuote(quote models.QuotePair) bool {
-	if quote.After != nil {
-		return f.block.Number.Cmp(quote.After) == -1
-	}
-	if quote.Before != nil {
-		return f.block.Number.Cmp(quote.Before) == 1
-	}
-	return false
-}
-
-func (f *FiatConverter) Update(pair string, tokenA string, tokenB string, price decimal.Decimal) {
+func (f *FiatConverter) Update(pair, tokenA, tokenB string, price decimal.Decimal) {
 	if f.updateable(pair) {
 		if f.ShouldFlip(pair) {
 			f.updatePrice(tokenB, price, true)
@@ -109,7 +101,7 @@ func (f *FiatConverter) GetPriceOfToken(token string) decimal.Decimal {
 	return decimal.NewFromInt(0)
 }
 
-func (f *FiatConverter) Convert(tokenA string, tokenB string, price decimal.Decimal) decimal.Decimal {
+func (f *FiatConverter) Convert(tokenA, tokenB string, price decimal.Decimal) decimal.Decimal {
 	if f.isTokenStable(tokenA) {
 		if !price.IsZero() {
 			return decimal.NewFromInt(1).Div(price)
@@ -122,7 +114,7 @@ func (f *FiatConverter) Convert(tokenA string, tokenB string, price decimal.Deci
 }
 
 // ConvertAB - return both prices
-func (f *FiatConverter) ConvertAB(tokenA string, tokenB string, price decimal.Decimal) (priceAUSD decimal.Decimal, priceBUSD decimal.Decimal) {
+func (f *FiatConverter) ConvertAB(tokenA, tokenB string, price decimal.Decimal) (priceAUSD, priceBUSD decimal.Decimal) {
 	if !price.IsZero() {
 		if f.isTokenStable(tokenA) {
 			return decimal.NewFromInt(1), decimal.NewFromInt(1).Div(price)
@@ -156,7 +148,7 @@ func (f *FiatConverter) Commit() {
 
 	key := cacheKey(f.block.Network, f.block.Number.String())
 
-	if err := f.redis.Set(context.Background(), key, b, time.Second*30).Err(); err != nil {
+	if err := f.redis.Set(context.Background(), key, b, time.Second*RedisTimeout).Err(); err != nil {
 		f.log.Error(err.Error())
 	}
 }
@@ -195,17 +187,14 @@ func (f *FiatConverter) isTokenStable(token string) bool {
 	defer f.stableCoinsMutex.Unlock()
 	f.stableCoinsMutex.Lock()
 
-	if f.stableCoinsList[token] {
-		return true
-	}
-	return false
+	return f.stableCoinsList[token]
 }
 
 /**
  * Cache interaction methods
  */
 
-func cacheKey(network string, number string) string {
+func cacheKey(network, number string) string {
 	return fmt.Sprintf("parser:prices:%s:%s", network, number)
 }
 

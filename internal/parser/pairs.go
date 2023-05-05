@@ -16,7 +16,6 @@ const trxDecimals = 6
 func (p *Parser) GetCachePairToken(address *tronApi.Address) (string, int32, bool) {
 	pair, err := p.pairsCache.Value(context.Background(), address.ToBase58())
 	if err != nil {
-
 		pInstance := intermediate.Pair{Address: address.ToBase58()}
 		hexTokenAddress, err := p.api.GetPairToken(address.ToHex())
 		if err != nil {
