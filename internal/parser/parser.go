@@ -47,14 +47,14 @@ func (p *Parser) Parse(block models.Block) bool {
 	for i := range resp.Transactions {
 		if isSuccessCall(&resp.Transactions[i]) || hasContractCalls(&resp.Transactions[i]) {
 			cnt += 1
-			p.parseTransaction(resp.Transactions[i])
+			p.parseTransaction(&resp.Transactions[i])
 		}
 	}
 	p.log.Info(fmt.Sprintf("Parsing transactions: %v", cnt))
 
 	if len(p.failedTx) > 0 {
 		for i := range p.failedTx {
-			p.parseTransaction(p.failedTx[i])
+			p.parseTransaction(&p.failedTx[i])
 		}
 	}
 	// save prices
@@ -81,9 +81,9 @@ func isSuccessCall(transaction *tronApi.Transaction) bool {
 }
 
 // parseTransaction - process single transactions
-func (p *Parser) parseTransaction(transaction tronApi.Transaction) {
+func (p *Parser) parseTransaction(transaction *tronApi.Transaction) {
 	// Fetch transfer contracts
-	if !isNotTransferCall(&transaction) && len(transaction.RawData.Contract) > 0 {
+	if !isNotTransferCall(transaction) && len(transaction.RawData.Contract) > 0 {
 		p.parseTransferContract(transaction)
 		return
 	}
@@ -91,7 +91,7 @@ func (p *Parser) parseTransaction(transaction tronApi.Transaction) {
 	resp, err := p.api.GetTransactionInfoById(transaction.TxID)
 	if err != nil {
 		p.log.Error("parseTransaction: " + err.Error())
-		p.failedTx = append(p.failedTx, transaction)
+		p.failedTx = append(p.failedTx, *transaction)
 		return
 	}
 	// Populate cache

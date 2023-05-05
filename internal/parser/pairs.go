@@ -13,6 +13,8 @@ const trxTokenAddress = "TRX"
 const trxDecimals = 6
 
 // GetCachePairToken - Try to pull from cache or populate cache
+//
+//nolint:gocritic
 func (p *Parser) GetCachePairToken(address *tronApi.Address) (string, int32, bool) {
 	pair, err := p.pairsCache.Value(context.Background(), address.ToBase58())
 	if err != nil {
@@ -51,6 +53,8 @@ func (p *Parser) GetCachePairToken(address *tronApi.Address) (string, int32, boo
 }
 
 // GetPairTokens - Get tokens of pair
+//
+//nolint:gocritic
 func (p *Parser) GetPairTokens(address *tronApi.Address) (string, int32, string, int32, bool) {
 	adr, decimals, ok := p.GetCachePairToken(address)
 	if ok {
@@ -82,6 +86,9 @@ func (p *Parser) GetPairTokens(address *tronApi.Address) (string, int32, string,
 	return tokenAddr.ToBase58(), decimals, trxTokenAddress, trxDecimals, true
 }
 
+// GetUniv2PairTokens - dissolve univ2-like pair into set of tokens
+//
+//nolint:gocritic
 func (p *Parser) GetUniv2PairTokens(address *tronApi.Address) (string, int32, string, int32, bool) {
 	pair, ok := p.jmcache.GetPair(Chain, address)
 	if ok {

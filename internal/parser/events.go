@@ -15,6 +15,7 @@ import (
 	"time"
 )
 
+//nolint:gosec
 const (
 	Chain           = "TRON"
 	NativeToken     = "TXka46PPwttNPWfFDPtt3GUodbPThyufaV"
@@ -58,7 +59,6 @@ func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, owner s
 	ownerAddress := getAddressObject(owner)
 	switch methodID {
 	case transferEvent:
-		//p.onTokenTransfer(log, tx, timestamp)
 		p.processHolder(log, tx)
 	case tokenPurchaseEvent:
 		p.onTokenPurchase(log, tx, timestamp)
@@ -96,7 +96,7 @@ func (p *Parser) processHolder(log tronApi.Log, tx string) {
 	p.state.AddProcessHolder(&h)
 }
 
-func (p *Parser) parseTransferContract(transaction tronApi.Transaction) {
+func (p *Parser) parseTransferContract(transaction *tronApi.Transaction) {
 	h := commonModels.Holder{
 		Token:  NativeToken,
 		From:   tronApi.FromHex(tronApi.TrimZeroes(transaction.RawData.Contract[0].Parameter.Value.OwnerAddress)).ToBase58(),
@@ -210,7 +210,7 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	p.state.AddTrade(&swap)
 }
 
-func calculateValueUSD(amount0 decimal.Decimal, amount1 decimal.Decimal, ausd decimal.Decimal, busd decimal.Decimal) decimal.Decimal {
+func calculateValueUSD(amount0, amount1, ausd, busd decimal.Decimal) decimal.Decimal {
 	if !ausd.IsZero() {
 		return amount0.Mul(ausd)
 	}
@@ -296,7 +296,6 @@ func (p *Parser) isPairWhiteListed(pair *tronApi.Address) bool {
 func (p *Parser) onPairCreated(log tronApi.Log, timestamp int64) {
 	factory := tronApi.FromHex(log.Address)
 	pair := tronApi.FromHex(tronApi.TrimZeroes(log.Topics[2]))
-	//token := log.Topics[1]
 	nodeURL := os.Getenv("SOLIDITY_FULL_NODE_URL")
 	p.state.RegisterNewPair(factory.ToBase58(), pair.ToBase58(), "sunswap", Chain, nodeURL, time.Unix(timestamp, 0))
 }
