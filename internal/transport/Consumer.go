@@ -24,7 +24,7 @@ func (t *Consumer) Listen() {
 	for {
 		m, err := t.reader.ReadMessage(context.Background())
 		if err != nil {
-			t.log.Error(err.Error())
+			t.failFn(err)
 			break
 		}
 		t.blockFn(m.Value)
