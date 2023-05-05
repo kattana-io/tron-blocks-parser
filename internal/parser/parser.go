@@ -44,17 +44,17 @@ func (p *Parser) Parse(block models.Block) bool {
 	p.log.Info("Parsing block: " + block.Number.String())
 
 	cnt := 0
-	for _, transaction := range resp.Transactions {
-		if isSuccessCall(&transaction) || hasContractCalls(&transaction) {
+	for i := range resp.Transactions {
+		if isSuccessCall(&resp.Transactions[i]) || hasContractCalls(&resp.Transactions[i]) {
 			cnt += 1
-			p.parseTransaction(transaction)
+			p.parseTransaction(&resp.Transactions[i])
 		}
 	}
 	p.log.Info(fmt.Sprintf("Parsing transactions: %v", cnt))
 
 	if len(p.failedTx) > 0 {
-		for _, tx := range p.failedTx {
-			p.parseTransaction(tx)
+		for i := range p.failedTx {
+			p.parseTransaction(&p.failedTx[i])
 		}
 	}
 	// save prices
@@ -81,9 +81,9 @@ func isSuccessCall(transaction *tronApi.Transaction) bool {
 }
 
 // parseTransaction - process single transactions
-func (p *Parser) parseTransaction(transaction tronApi.Transaction) {
+func (p *Parser) parseTransaction(transaction *tronApi.Transaction) {
 	// Fetch transfer contracts
-	if !isNotTransferCall(&transaction) && len(transaction.RawData.Contract) > 0 {
+	if !isNotTransferCall(transaction) && len(transaction.RawData.Contract) > 0 {
 		p.parseTransferContract(transaction)
 		return
 	}
@@ -91,7 +91,7 @@ func (p *Parser) parseTransaction(transaction tronApi.Transaction) {
 	resp, err := p.api.GetTransactionInfoById(transaction.TxID)
 	if err != nil {
 		p.log.Error("parseTransaction: " + err.Error())
-		p.failedTx = append(p.failedTx, transaction)
+		p.failedTx = append(p.failedTx, *transaction)
 		return
 	}
 	// Populate cache
@@ -138,15 +138,24 @@ func (p *Parser) DeleteHolders() {
 	p.state.Holders = nil
 }
 
-func New(api *tronApi.Api, log *zap.Logger, lists *integrations.TokenListsProvider, pairsCache *cache.PairsCache, converter *converters.FiatConverter, abiHolder *abi.Holder, jmcache *cache.JMPairsCache) *Parser {
+func New(api *tronApi.Api,
+	log *zap.Logger,
+	lists *integrations.TokenListsProvider,
+	pairsCache *cache.PairsCache,
+	converter *converters.FiatConverter,
+	abiHolder *abi.Holder,
+	jmCache *cache.JMPairsCache) *Parser {
 	whiteListedPairs := sync.Map{}
+	whiteListedPairs.Store("TFGDbUyP8xez44C76fin3bn3Ss6jugoUwJ", true) // TRX-USDT v2
+	whiteListedPairs.Store("TNLcz8A9hGKbTNJ6b6C1GTyigwxURbWzkM", true) // USDD-USDT
+	whiteListedPairs.Store("TQcia2H2TU3WrFk9sKtdK9qCfkW8XirfPQ", true) // TRX-USDJ
 	whiteListedPairs.Store("TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE", true) // USDT-TRX
 	whiteListedPairs.Store("TXX1i3BWKBuTxUmTERCztGyxSSpRagEcjX", true) // USDC-TRX
 	whiteListedPairs.Store("TSJWbBJAS8HgQCMJfY5drVwYDa7JBAm6Es", true) // USDD-TRX
 	whiteListedPairs.Store("TYukBQZ2XXCcRCReAUguyXncCWNY9CEiDQ", true) // JST-TRX
 
 	return &Parser{
-		jmcache:          jmcache,
+		jmcache:          jmCache,
 		fiatConverter:    converter,
 		api:              api,
 		log:              log,

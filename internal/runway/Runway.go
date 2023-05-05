@@ -17,7 +17,9 @@ func (r *Runway) Run() {
 
 func Create() *Runway {
 	logger, _ := zap.NewProduction()
-	defer logger.Sync() // flushes buffer, if any
+	defer func(logger *zap.Logger) {
+		_ = logger.Sync()
+	}(logger) // flushes buffer, if any
 
 	return &Runway{
 		logger: logger,

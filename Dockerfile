@@ -1,4 +1,4 @@
-FROM golang:1.18-alpine AS gobuild
+FROM golang:1.20-alpine AS gobuild
 
 WORKDIR /build
 COPY cmd ./cmd

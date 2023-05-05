@@ -60,10 +60,8 @@ func NewTokensListProvider(log *zap.Logger) *TokenListsProvider {
 
 func createDecimalsList(resp map[string]Token) *sync.Map {
 	smp := sync.Map{}
-	if resp != nil {
-		for key, token := range resp {
-			smp.Store(tronApi.FromBase58(key).ToBase58(), token.Decimals)
-		}
+	for key, token := range resp {
+		smp.Store(tronApi.FromBase58(key).ToBase58(), token.Decimals)
 	}
 	return &smp
 }

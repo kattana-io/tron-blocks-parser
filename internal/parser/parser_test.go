@@ -39,7 +39,7 @@ func Test_getMethodId(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := getMethodId(tt.args.input); got != tt.want {
+			if got := getMethodID(tt.args.input); got != tt.want {
 				t.Errorf("getMethodId() = %v, want %v", got, tt.want)
 			}
 		})

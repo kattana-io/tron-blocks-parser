@@ -52,17 +52,17 @@ func (i *State) AddTransferEvent(transfer *models.TransferEvent) {
 	i.Transfers = append(i.Transfers, transfer)
 }
 
-func (i *State) RegisterNewPair(Factory string, Pair string, Klass string, network string, node string, time time.Time) {
+func (i *State) RegisterNewPair(factory, pair, klass, network, node string, blockTime time.Time) {
 	i.pairsLock.Lock()
 	defer i.pairsLock.Unlock()
 
 	i.Pairs = append(i.Pairs, &models.NewPair{
-		Factory:     Factory,
-		Pair:        Pair,
-		Klass:       Klass,
+		Factory:     factory,
+		Pair:        pair,
+		Klass:       klass,
 		Network:     network,
 		Node:        node,
-		PoolCreated: time.Unix(),
+		PoolCreated: blockTime.Unix(),
 	})
 }
 

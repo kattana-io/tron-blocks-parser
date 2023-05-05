@@ -13,9 +13,10 @@ import (
 	"time"
 )
 
+//nolint:lll
 const JMFactoryABI = `[{"inputs":[{"internalType":"address","name":"_owner","type":"address"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"token0","type":"address"},{"indexed":true,"internalType":"address","name":"token1","type":"address"},{"indexed":false,"internalType":"address","name":"pair","type":"address"},{"indexed":false,"internalType":"uint256","name":"","type":"uint256"}],"name":"PairCreated","type":"event"},{"constant":false,"inputs":[{"internalType":"address","name":"_moderator","type":"address"}],"name":"addModerator","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"allPairs","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"allPairsLength","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"tokenA","type":"address"},{"internalType":"address","name":"tokenB","type":"address"}],"name":"createPair","outputs":[{"internalType":"address","name":"pair","type":"address"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"feeTo","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"}],"name":"getPair","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"pair","type":"address"}],"name":"getPairSymbols","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getRouterAddress","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"getTokensByPair","outputs":[{"internalType":"address","name":"tokenA","type":"address"},{"internalType":"address","name":"tokenB","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_moderator","type":"address"}],"name":"removeModerator","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_feeTo","type":"address"}],"name":"setFeeTo","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_newOwner","type":"address"}],"name":"setNewOwner","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_router","type":"address"}],"name":"setRouterAddress","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}]`
 
-func (p *Parser) onJmPairCreated(log tronApi.Log, tx string, timestamp int64) {
+func (p *Parser) onJmPairCreated(log tronApi.Log, timestamp int64) {
 	factory := tronApi.FromHex(log.Address)
 
 	factoryAbi, err := abi.JSON(strings.NewReader(JMFactoryABI))
@@ -30,7 +31,7 @@ func (p *Parser) onJmPairCreated(log tronApi.Log, tx string, timestamp int64) {
 			p.log.Debug("Unpack error", zap.Error(err))
 			return
 		}
-		data := make(map[string]interface{})
+		data := make(map[string]any)
 		err2 := event.Inputs.UnpackIntoMap(data, common.FromHex(log.Data))
 		if err2 != nil {
 			p.log.Debug("Unpack error", zap.Error(err2))
@@ -38,26 +39,26 @@ func (p *Parser) onJmPairCreated(log tronApi.Log, tx string, timestamp int64) {
 		}
 		pairAddress := data["pair"].(common.Address)
 		pair := tronApi.FromHex(pairAddress.Hex())
-		nodeUrl := os.Getenv("SOLIDITY_FULL_NODE_URL")
-		p.state.RegisterNewPair(factory.ToBase58(), pair.ToBase58(), "justmoney", Chain, nodeUrl, time.Unix(timestamp, 0))
+		nodeURL := os.Getenv("SOLIDITY_FULL_NODE_URL")
+		p.state.RegisterNewPair(factory.ToBase58(), pair.ToBase58(), "justmoney", Chain, nodeURL, time.Unix(timestamp, 0))
 	}
 }
 
 // GetUniV2Buy Returns Buy true/false
-func GetUniV2Buy(Amount0In *big.Int, Amount0Out *big.Int, Amount1In *big.Int, Amount1Out *big.Int) bool {
+func GetUniV2Buy(amount0In, amount0Out, amount1In, amount1Out *big.Int) bool {
 	zero := big.NewInt(0)
 	// tokenB amount is 0, so we are selling tokenA
-	if Amount1In.Cmp(zero) == 0 {
+	if amount1In.Cmp(zero) == 0 {
 		return false
 	}
 	// tokenA is 0, so we are buying it
-	if Amount0In.Cmp(zero) == 0 {
+	if amount0In.Cmp(zero) == 0 {
 		return true
 	}
-	if Amount1In.Cmp(zero) == 1 && Amount0Out.Cmp(zero) == 1 {
+	if amount1In.Cmp(zero) == 1 && amount0Out.Cmp(zero) == 1 {
 		return true // Buy
 	}
-	if Amount0In.Cmp(zero) == 1 && Amount1Out.Cmp(zero) == 1 {
+	if amount0In.Cmp(zero) == 1 && amount1Out.Cmp(zero) == 1 {
 		return false // Sell
 	}
 	return false
@@ -70,7 +71,7 @@ func (p *Parser) onJmSyncEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 		p.log.Debug("Unpack error", zap.Error(err))
 		return
 	}
-	data := make(map[string]interface{})
+	data := make(map[string]any)
 	if event != nil {
 		// Unpack log into map
 		err2 := event.Inputs.UnpackIntoMap(data, common.FromHex(log.Data))
@@ -91,15 +92,15 @@ func (p *Parser) onJmSyncEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 
 		// @todo verify price formula
 		priceA := decimal.Decimal{}
-		res0 := decimal.NewFromBigInt(reserves0, -int32(decimalsA))
+		res0 := decimal.NewFromBigInt(reserves0, -decimalsA)
 		if !res0.IsZero() {
-			priceA = decimal.NewFromBigInt(reserves1, -int32(decimalsB)).Div(res0)
+			priceA = decimal.NewFromBigInt(reserves1, -decimalsB).Div(res0)
 		}
 
 		priceB := decimal.Decimal{}
-		res1 := decimal.NewFromBigInt(reserves1, -int32(decimalsB))
+		res1 := decimal.NewFromBigInt(reserves1, -decimalsB)
 		if !res1.IsZero() {
-			priceB = decimal.NewFromBigInt(reserves0, -int32(decimalsA)).Div(res1)
+			priceB = decimal.NewFromBigInt(reserves0, -decimalsA).Div(res1)
 		}
 
 		priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
@@ -129,7 +130,7 @@ func (p *Parser) onJmSyncEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 }
 
 // Dissolve pair into tokens, calculate values
-func (p *Parser) calculateReservesInUSD(reserves0 *big.Int, reserves1 *big.Int, PriceA decimal.Decimal, address *tronApi.Address) decimal.Decimal {
+func (p *Parser) calculateReservesInUSD(reserves0, reserves1 *big.Int, priceA decimal.Decimal, address *tronApi.Address) decimal.Decimal {
 	// Dissolve pair
 	Pair, ok := p.jmcache.GetPair(Chain, address)
 	if !ok {
@@ -142,7 +143,7 @@ func (p *Parser) calculateReservesInUSD(reserves0 *big.Int, reserves1 *big.Int, 
 	decimalsB := Pair.TokenB.Decimals
 
 	// Get rate for A
-	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, PriceA)
+	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
 	if !priceAUSD.IsZero() {
 		return decimal.NewFromBigInt(reserves0, 0).Div(decimal.New(1, int32(decimalsA))).Mul(priceAUSD).Mul(decimal.NewFromInt(2))
 	}
@@ -160,7 +161,7 @@ func (p *Parser) onJmSwapEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 		p.log.Debug("Unpack error", zap.Error(err))
 		return
 	}
-	data := make(map[string]interface{})
+	data := make(map[string]any)
 	if event != nil {
 		// Unpack log into map
 		err2 := event.Inputs.UnpackIntoMap(data, common.FromHex(log.Data))
@@ -198,8 +199,8 @@ func (p *Parser) onJmSwapEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 			return
 		}
 
-		naturalA := decimal.NewFromBigInt(Token0Amount, -int32(decimalsA)).Abs()
-		naturalB := decimal.NewFromBigInt(Token1Amount, -int32(decimalsB)).Abs()
+		naturalA := decimal.NewFromBigInt(Token0Amount, -decimalsA).Abs()
+		naturalB := decimal.NewFromBigInt(Token1Amount, -decimalsB).Abs()
 
 		PriceA := naturalB.Div(naturalA)
 		PriceB := naturalA.Div(naturalB)

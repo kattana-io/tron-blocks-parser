@@ -3,7 +3,6 @@ package transport
 import (
 	"context"
 	"fmt"
-	"github.com/go-redis/redis/v8"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
@@ -12,19 +11,17 @@ import (
 )
 
 type Consumer struct {
-	reader    *kafka.Reader
-	log       *zap.Logger
-	blockFn   func(Value []byte) bool
-	failFn    func(error error)
-	publisher *Publisher
-	redis     *redis.Client
+	reader  *kafka.Reader
+	log     *zap.Logger
+	blockFn func(Value []byte) bool
+	failFn  func(error error)
 }
 
 func (t *Consumer) Listen() {
 	for {
 		m, err := t.reader.ReadMessage(context.Background())
 		if err != nil {
-			t.log.Error(err.Error())
+			t.failFn(err)
 			break
 		}
 		t.blockFn(m.Value)
@@ -52,7 +49,6 @@ func (t *Consumer) Close() {
 }
 
 func CreateConsumer(topic models.Topics, log *zap.Logger) *Consumer {
-
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  []string{os.Getenv("KAFKA")},
 		Topic:    string(topic),
