@@ -7,6 +7,7 @@ package parser
 import (
 	commonModels "github.com/kattana-io/models/pkg/storage"
 	"github.com/kattana-io/tron-blocks-parser/internal/helper"
+	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/shopspring/decimal"
 	"math/big"
@@ -15,11 +16,8 @@ import (
 	"time"
 )
 
-//nolint:gosec
 const (
 	Chain           = "TRON"
-	NativeToken     = "TXka46PPwttNPWfFDPtt3GUodbPThyufaV"
-	TronBase        = 16
 	SyncTopicsCount = 4
 )
 
@@ -78,7 +76,7 @@ func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, owner s
 }
 
 func (p *Parser) processHolder(log tronApi.Log, tx string) {
-	amounts, ok := big.NewInt(0).SetString(log.Data, TronBase)
+	amounts, ok := big.NewInt(0).SetString(log.Data, models.TronBase)
 	if !ok || amounts.Cmp(big.NewInt(0)) == 0 {
 		return
 	}
@@ -98,7 +96,7 @@ func (p *Parser) processHolder(log tronApi.Log, tx string) {
 
 func (p *Parser) parseTransferContract(transaction *tronApi.Transaction) {
 	h := commonModels.Holder{
-		Token:  NativeToken,
+		Token:  models.NativeToken,
 		From:   tronApi.FromHex(tronApi.TrimZeroes(transaction.RawData.Contract[0].Parameter.Value.OwnerAddress)).ToBase58(),
 		To:     tronApi.FromHex(tronApi.TrimZeroes(transaction.RawData.Contract[0].Parameter.Value.ToAddress)).ToBase58(),
 		Tx:     transaction.TxID,
@@ -306,6 +304,6 @@ func getMethodID(input string) int {
 	numberStr := input[0:8]
 	// Convert into number
 	n := new(big.Int)
-	n.SetString(numberStr, TronBase)
+	n.SetString(numberStr, models.TronBase)
 	return int(n.Int64())
 }
