@@ -34,7 +34,7 @@ func (p *Parser) Parse(block models.Block) bool {
 
 	resp, err := p.api.GetBlockByNum(int32(block.Number.Int64()))
 	if resp.BlockID == "" {
-		p.log.Sugar().Errorf("Could not receive block: ", err.Error())
+		p.log.Sugar().Errorf("Could not receive block: ", zap.Error(err))
 		return false
 	}
 	if err != nil {
