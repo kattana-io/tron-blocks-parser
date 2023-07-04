@@ -3,6 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/goccy/go-json"
 	commonModels "github.com/kattana-io/models/pkg/storage"
 	"github.com/kattana-io/tron-blocks-parser/internal/abi"
@@ -19,10 +24,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 const shutdownTimeout = 5
@@ -42,11 +43,14 @@ func main() {
 	redis := runner.Redis()
 	runner.Run()
 
-	api := createAPI(logger)
 	quotesFile := helper.NewQuotesFile()
 	tokenLists := integrations.NewTokensListProvider(logger)
 	pairsCache := cache.NewPairsCache(redis, logger)
-	jmPairsCache := cache.CreateJMPairsCache(redis, api, tokenLists, logger)
+
+	nodeURL := os.Getenv("FULL_NODE_URL")
+	apiForCache := createAPI(nodeURL, logger)
+	jmPairsCache := cache.CreateJMPairsCache(redis, apiForCache, tokenLists, logger)
+
 	shouldWarmupCache(pairsCache)
 
 	logger.Info(fmt.Sprintf("Start parser in %s mode", mode))
@@ -63,6 +67,7 @@ func main() {
 			logger.Error(err.Error())
 			return false
 		}
+
 		/**
 		 * Check for valid block number
 		 * Why we can have 0 here? Invalid value in JSON
@@ -71,9 +76,11 @@ func main() {
 			logger.Info("Received null block number, skipping")
 			return true
 		}
+
 		/**
 		 * Process block
 		 */
+		api := createAPI(block.Node, logger)
 		fiatConverter := converters.CreateConverter(redis, logger, &block, quotesFile.Get())
 		p := parser.New(api, logger, tokenLists, pairsCache, fiatConverter, abiHolder, jmPairsCache)
 		ok := p.Parse(block)
@@ -118,8 +125,7 @@ func shouldWarmupCache(pairsCache *cache.PairsCache) {
 	}
 }
 
-func createAPI(logger *zap.Logger) *tronApi.Api {
-	nodeURL := os.Getenv("SOLIDITY_FULL_NODE_URL")
+func createAPI(nodeURL string, logger *zap.Logger) *tronApi.Api {
 	var provider url.ApiUrlProvider
 	if nodeURL == "" {
 		logger.Info("Using trongrid adapter")
