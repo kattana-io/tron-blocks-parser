@@ -2,6 +2,8 @@ package parser
 
 import (
 	"fmt"
+	"sync"
+
 	models "github.com/kattana-io/models/pkg/storage"
 	"github.com/kattana-io/tron-blocks-parser/internal/abi"
 	"github.com/kattana-io/tron-blocks-parser/internal/cache"
@@ -10,7 +12,6 @@ import (
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/vmihailenco/msgpack/v5"
 	"go.uber.org/zap"
-	"sync"
 )
 
 type Parser struct {
@@ -33,7 +34,7 @@ func (p *Parser) Parse(block models.Block) bool {
 
 	resp, err := p.api.GetBlockByNum(int32(block.Number.Int64()))
 	if resp.BlockID == "" {
-		p.log.Error("Could not receive block")
+		p.log.Sugar().Errorf("Could not receive block: ", err.Error())
 		return false
 	}
 	if err != nil {
