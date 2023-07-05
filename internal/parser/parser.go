@@ -18,7 +18,7 @@ type Parser struct {
 	api              *tronApi.API
 	log              *zap.Logger
 	failedTx         []tronApi.Transaction
-	txMap            map[string]*tronApi.Transaction
+	txMap            sync.Map
 	state            *State
 	tokenLists       *integrations.TokenListsProvider
 	pairsCache       *cache.PairsCache
@@ -47,7 +47,7 @@ func (p *Parser) Parse(block models.Block) bool {
 	cnt := 0
 	for i := range resp.Transactions {
 		cnt++
-		p.txMap[resp.Transactions[i].TxID] = &resp.Transactions[i]
+		p.txMap.Store(resp.Transactions[i].TxID, &resp.Transactions[i])
 	}
 
 	p.parseTransactions(block.Number.Int64())
@@ -94,7 +94,12 @@ func (p *Parser) parseTransactions(blockNumber int64) {
 		// Process logs
 		for _, log := range tx.Log {
 			t := tx.BlockTimeStamp / 1000
-			owner := p.txMap[tx.ID].RawData.Contract[0].Parameter.Value.OwnerAddress
+			txRaw, ok := p.txMap.Load(tx.ID)
+
+			if !ok {
+				continue
+			}
+			owner := txRaw.(*tronApi.Transaction).RawData.Contract[0].Parameter.Value.OwnerAddress
 
 			go p.processLog(log, tx.ID, t, owner, &wg)
 		}
@@ -153,7 +158,7 @@ func New(api *tronApi.API,
 		api:              api,
 		log:              log,
 		failedTx:         []tronApi.Transaction{},
-		txMap:            make(map[string]*tronApi.Transaction),
+		txMap:            sync.Map{},
 		tokenLists:       lists,
 		pairsCache:       pairsCache,
 		abiHolder:        abiHolder,
