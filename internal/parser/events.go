@@ -95,16 +95,16 @@ func (p *Parser) processHolder(log tronApi.Log, tx string) {
 	p.state.AddProcessHolder(&h)
 }
 
-func (p *Parser) parseTransferContract(transaction *tronApi.Transaction) {
-	h := commonModels.Holder{
-		Token:  models.NativeToken,
-		From:   tronApi.FromHex(tronApi.TrimZeroes(transaction.RawData.Contract[0].Parameter.Value.OwnerAddress)).ToBase58(),
-		To:     tronApi.FromHex(tronApi.TrimZeroes(transaction.RawData.Contract[0].Parameter.Value.ToAddress)).ToBase58(),
-		Tx:     transaction.TxID,
-		Amount: transaction.RawData.Contract[0].Parameter.Value.Amount,
-	}
-	p.state.AddProcessHolder(&h)
-}
+// func (p *Parser) parseTransferContract(transaction *tronApi.Transaction) {
+// 	h := commonModels.Holder{
+// 		Token:  models.NativeToken,
+// 		From:   tronApi.FromHex(tronApi.TrimZeroes(transaction.RawData.Contract[0].Parameter.Value.OwnerAddress)).ToBase58(),
+// 		To:     tronApi.FromHex(tronApi.TrimZeroes(transaction.RawData.Contract[0].Parameter.Value.ToAddress)).ToBase58(),
+// 		Tx:     transaction.TxID,
+// 		Amount: transaction.RawData.Contract[0].Parameter.Value.Amount,
+// 	}
+// 	p.state.AddProcessHolder(&h)
+// }
 
 // topics - buyer,trx_sold,tokens_bought
 func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
