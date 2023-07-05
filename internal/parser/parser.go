@@ -85,7 +85,7 @@ func (p *Parser) parseTransactions(blockNumber int64) {
 	}
 	wg := sync.WaitGroup{}
 
-	for _, tx := range *resp {
+	for _, tx := range resp {
 		if tx.Receipt.Result != "SUCCESS" {
 			continue
 		}
