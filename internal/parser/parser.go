@@ -15,10 +15,10 @@ import (
 )
 
 type Parser struct {
-	api              *tronApi.Api
+	api              *tronApi.API
 	log              *zap.Logger
 	failedTx         []tronApi.Transaction
-	txMap            map[string]*tronApi.GetTransactionInfoByIdResp
+	txMap            map[string]*tronApi.Transaction
 	state            *State
 	tokenLists       *integrations.TokenListsProvider
 	pairsCache       *cache.PairsCache
@@ -46,18 +46,13 @@ func (p *Parser) Parse(block models.Block) bool {
 
 	cnt := 0
 	for i := range resp.Transactions {
-		if isSuccessCall(&resp.Transactions[i]) || hasContractCalls(&resp.Transactions[i]) {
-			cnt += 1
-			p.parseTransaction(&resp.Transactions[i])
-		}
+		cnt++
+		p.txMap[resp.Transactions[i].TxID] = &resp.Transactions[i]
 	}
+
+	p.parseTransactions(block.Number.Int64())
 	p.log.Info(fmt.Sprintf("Parsing transactions: %v", cnt))
 
-	if len(p.failedTx) > 0 {
-		for i := range p.failedTx {
-			p.parseTransaction(&p.failedTx[i])
-		}
-	}
 	// save prices
 	p.fiatConverter.Commit()
 	return true
@@ -81,31 +76,28 @@ func isSuccessCall(transaction *tronApi.Transaction) bool {
 	return transaction.Ret[0].ContractRet == "SUCCESS"
 }
 
-// parseTransaction - process single transactions
-func (p *Parser) parseTransaction(transaction *tronApi.Transaction) {
-	// Fetch transfer contracts
-	if !isNotTransferCall(transaction) && len(transaction.RawData.Contract) > 0 {
-		p.parseTransferContract(transaction)
-		return
-	}
-	// Fetch transaction with logs
-	resp, err := p.api.GetTransactionInfoById(transaction.TxID)
+func (p *Parser) parseTransactions(blockNumber int64) {
+	resp, err := p.api.GetTransactionInfoByBlockNum(blockNumber)
+
 	if err != nil {
 		p.log.Error("parseTransaction: " + err.Error())
-		p.failedTx = append(p.failedTx, *transaction)
 		return
 	}
-	// Populate cache
-	p.txMap[transaction.TxID] = resp
-
-	// Process logs
 	wg := sync.WaitGroup{}
-	wg.Add(len(resp.Log))
-	for _, log := range resp.Log {
-		t := transaction.RawData.Timestamp / 1000
 
-		owner := transaction.RawData.Contract[0].Parameter.Value.OwnerAddress
-		go p.processLog(log, transaction.TxID, t, owner, &wg)
+	for _, tx := range *resp {
+		if tx.Receipt.Result != "SUCCESS" {
+			continue
+		}
+		wg.Add(len(tx.Log))
+
+		// Process logs
+		for _, log := range tx.Log {
+			t := tx.BlockTimeStamp / 1000
+			owner := p.txMap[tx.ID].RawData.Contract[0].Parameter.Value.OwnerAddress
+
+			go p.processLog(log, tx.ID, t, owner, &wg)
+		}
 	}
 	wg.Wait()
 }
@@ -139,7 +131,7 @@ func (p *Parser) DeleteHolders() {
 	p.state.Holders = nil
 }
 
-func New(api *tronApi.Api,
+func New(api *tronApi.API,
 	log *zap.Logger,
 	lists *integrations.TokenListsProvider,
 	pairsCache *cache.PairsCache,
@@ -161,7 +153,7 @@ func New(api *tronApi.Api,
 		api:              api,
 		log:              log,
 		failedTx:         []tronApi.Transaction{},
-		txMap:            make(map[string]*tronApi.GetTransactionInfoByIdResp),
+		txMap:            make(map[string]*tronApi.Transaction),
 		tokenLists:       lists,
 		pairsCache:       pairsCache,
 		abiHolder:        abiHolder,

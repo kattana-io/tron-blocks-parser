@@ -5,15 +5,16 @@ package parser
  */
 
 import (
+	"math/big"
+	"os"
+	"sync"
+	"time"
+
 	commonModels "github.com/kattana-io/models/pkg/storage"
 	"github.com/kattana-io/tron-blocks-parser/internal/helper"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/shopspring/decimal"
-	"math/big"
-	"os"
-	"sync"
-	"time"
 )
 
 const (
@@ -294,7 +295,7 @@ func (p *Parser) isPairWhiteListed(pair *tronApi.Address) bool {
 func (p *Parser) onPairCreated(log tronApi.Log, timestamp int64) {
 	factory := tronApi.FromHex(log.Address)
 	pair := tronApi.FromHex(tronApi.TrimZeroes(log.Topics[2]))
-	nodeURL := os.Getenv("SOLIDITY_FULL_NODE_URL")
+	nodeURL := os.Getenv("FULL_NODE_URL")
 	p.state.RegisterNewPair(factory.ToBase58(), pair.ToBase58(), "sunswap", Chain, nodeURL, time.Unix(timestamp, 0))
 }
 

@@ -2,19 +2,20 @@ package cache
 
 import (
 	"context"
+	"time"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/kattana-io/tron-blocks-parser/internal/integrations"
 	"github.com/kattana-io/tron-blocks-parser/internal/pair"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"go.uber.org/zap"
-	"time"
 )
 
 type JMPairsCache struct {
 	log       *zap.Logger
 	redis     Cache
 	ttl       time.Duration
-	api       *tronApi.Api
+	api       *tronApi.API
 	tokenList *integrations.TokenListsProvider
 }
 
@@ -40,7 +41,7 @@ func (c *JMPairsCache) GetPair(network string, address *tronApi.Address) (*pair.
 	}
 }
 
-func CreateJMPairsCache(redis *redis.Client, api *tronApi.Api, tokenList *integrations.TokenListsProvider, log *zap.Logger) *JMPairsCache {
+func CreateJMPairsCache(redis *redis.Client, api *tronApi.API, tokenList *integrations.TokenListsProvider, log *zap.Logger) *JMPairsCache {
 	return &JMPairsCache{
 		api:       api,
 		log:       log,
