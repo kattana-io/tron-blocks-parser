@@ -5,15 +5,16 @@ package parser
  */
 
 import (
+	"math/big"
+	"os"
+	"sync"
+	"time"
+
 	commonModels "github.com/kattana-io/models/pkg/storage"
 	"github.com/kattana-io/tron-blocks-parser/internal/helper"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/shopspring/decimal"
-	"math/big"
-	"os"
-	"sync"
-	"time"
 )
 
 const (
@@ -94,16 +95,16 @@ func (p *Parser) processHolder(log tronApi.Log, tx string) {
 	p.state.AddProcessHolder(&h)
 }
 
-func (p *Parser) parseTransferContract(transaction *tronApi.Transaction) {
-	h := commonModels.Holder{
-		Token:  models.NativeToken,
-		From:   tronApi.FromHex(tronApi.TrimZeroes(transaction.RawData.Contract[0].Parameter.Value.OwnerAddress)).ToBase58(),
-		To:     tronApi.FromHex(tronApi.TrimZeroes(transaction.RawData.Contract[0].Parameter.Value.ToAddress)).ToBase58(),
-		Tx:     transaction.TxID,
-		Amount: transaction.RawData.Contract[0].Parameter.Value.Amount,
-	}
-	p.state.AddProcessHolder(&h)
-}
+// func (p *Parser) parseTransferContract(transaction *tronApi.Transaction) {
+// 	h := commonModels.Holder{
+// 		Token:  models.NativeToken,
+// 		From:   tronApi.FromHex(tronApi.TrimZeroes(transaction.RawData.Contract[0].Parameter.Value.OwnerAddress)).ToBase58(),
+// 		To:     tronApi.FromHex(tronApi.TrimZeroes(transaction.RawData.Contract[0].Parameter.Value.ToAddress)).ToBase58(),
+// 		Tx:     transaction.TxID,
+// 		Amount: transaction.RawData.Contract[0].Parameter.Value.Amount,
+// 	}
+// 	p.state.AddProcessHolder(&h)
+// }
 
 // topics - buyer,trx_sold,tokens_bought
 func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
@@ -294,7 +295,7 @@ func (p *Parser) isPairWhiteListed(pair *tronApi.Address) bool {
 func (p *Parser) onPairCreated(log tronApi.Log, timestamp int64) {
 	factory := tronApi.FromHex(log.Address)
 	pair := tronApi.FromHex(tronApi.TrimZeroes(log.Topics[2]))
-	nodeURL := os.Getenv("SOLIDITY_FULL_NODE_URL")
+	nodeURL := os.Getenv("FULL_NODE_URL")
 	p.state.RegisterNewPair(factory.ToBase58(), pair.ToBase58(), "sunswap", Chain, nodeURL, time.Unix(timestamp, 0))
 }
 

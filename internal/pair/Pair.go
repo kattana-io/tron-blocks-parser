@@ -14,7 +14,7 @@ type Pair struct {
 
 const MaxRetry = 5
 
-func NewPair(address *tronApi.Address, api *tronApi.Api, tokenList *integrations.TokenListsProvider, log *zap.Logger) (Pair, bool) {
+func NewPair(address *tronApi.Address, api *tronApi.API, tokenList *integrations.TokenListsProvider, log *zap.Logger) (Pair, bool) {
 	pair := justmoney.New(api, *address)
 	token0Addr, err := pair.Token0()
 	if err != nil {
@@ -46,7 +46,7 @@ func NewPair(address *tronApi.Address, api *tronApi.Api, tokenList *integrations
 	}, true
 }
 
-func tryGetTokenDecimals(addr *tronApi.Address, api *tronApi.Api, tokenList *integrations.TokenListsProvider, try int64) (int32, bool) {
+func tryGetTokenDecimals(addr *tronApi.Address, api *tronApi.API, tokenList *integrations.TokenListsProvider, try int64) (int32, bool) {
 	// for first time try to get from cache
 	if try == 0 {
 		dec, ok := tokenList.GetDecimals(addr)

@@ -1,16 +1,17 @@
 package parser
 
 import (
+	"math/big"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	commonModels "github.com/kattana-io/models/pkg/storage"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
-	"math/big"
-	"os"
-	"strings"
-	"time"
 )
 
 //nolint:lll
@@ -39,7 +40,7 @@ func (p *Parser) onJmPairCreated(log tronApi.Log, timestamp int64) {
 		}
 		pairAddress := data["pair"].(common.Address)
 		pair := tronApi.FromHex(pairAddress.Hex())
-		nodeURL := os.Getenv("SOLIDITY_FULL_NODE_URL")
+		nodeURL := os.Getenv("FULL_NODE_URL")
 		p.state.RegisterNewPair(factory.ToBase58(), pair.ToBase58(), "justmoney", Chain, nodeURL, time.Unix(timestamp, 0))
 	}
 }

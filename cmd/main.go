@@ -125,16 +125,16 @@ func shouldWarmupCache(pairsCache *cache.PairsCache) {
 	}
 }
 
-func createAPI(nodeURL string, logger *zap.Logger) *tronApi.Api {
-	var provider url.ApiUrlProvider
+func createAPI(nodeURL string, logger *zap.Logger) *tronApi.API {
+	var provider url.APIURLProvider
 	if nodeURL == "" {
 		logger.Info("Using trongrid adapter")
-		provider = url.NewTrongridUrlProvider()
+		provider = url.NewTrongridURLProvider()
 	} else {
 		logger.Info("Using node adapter")
-		provider = url.NewNodeUrlProvider(nodeURL)
+		provider = url.NewNodeURLProvider(nodeURL)
 	}
-	api := tronApi.NewApi(nodeURL, logger, provider)
+	api := tronApi.NewAPI(nodeURL, logger, provider)
 	return api
 }
 
