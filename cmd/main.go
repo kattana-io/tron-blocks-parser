@@ -41,7 +41,6 @@ func main() {
 	registerCommandLineFlags(logger)
 	mode, topic := getRunningMode()
 	redis := runner.Redis()
-	runner.Run()
 
 	quotesFile := helper.NewQuotesFile()
 	tokenLists := integrations.NewTokensListProvider(logger)
@@ -105,11 +104,11 @@ func main() {
 }
 
 func handleTermination(publisher *transport.Publisher, reader *transport.Consumer) {
-	fmt.Println("Start terminating process")
+	zap.L().Info("Start terminating process")
 	reader.Close()
 	publisher.Close()
 	time.Sleep(shutdownTimeout * time.Second)
-	fmt.Println("Finish")
+	zap.L().Info("Finish")
 }
 
 // Check if we should fill cache for dev purpose

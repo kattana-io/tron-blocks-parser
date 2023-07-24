@@ -11,15 +11,9 @@ type Runway struct {
 	redis  *redis.Client
 }
 
-func (r *Runway) Run() {
-
-}
-
 func Create() *Runway {
-	logger, _ := zap.NewProduction()
-	defer func(logger *zap.Logger) {
-		_ = logger.Sync()
-	}(logger) // flushes buffer, if any
+	logger := zap.Must(zap.NewProduction())
+	zap.ReplaceGlobals(logger)
 
 	return &Runway{
 		logger: logger,
