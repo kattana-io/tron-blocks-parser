@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"github.com/kattana-io/tron-objects-api/pkg/trc20"
 	"sync"
 
 	models "github.com/kattana-io/models/pkg/storage"
@@ -134,6 +135,11 @@ func (p *Parser) GetEncodedHolders() []byte {
 
 func (p *Parser) DeleteHolders() {
 	p.state.Holders = nil
+}
+
+func (p *Parser) GetTokenDecimals(address *tronApi.Address) (int32, bool) {
+	token := trc20.New(p.api, address)
+	return token.TryToGetDecimals(3)
 }
 
 func New(api *tronApi.API,

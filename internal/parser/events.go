@@ -5,6 +5,8 @@ package parser
  */
 
 import (
+	"github.com/ethereum/go-ethereum/common"
+	"go.uber.org/zap"
 	"math/big"
 	"os"
 	"sync"
@@ -35,7 +37,10 @@ const snapshotEvent = 0xcc7244d3
 const listingEvent = 0x9d42cb01
 const jmListingEvent = 0x0d3648bd
 const jmUniv2SwapEvent = 0xd78ad95f
-const jmUniV2SyncEventID = 0x1c411e9a // 0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1
+const jmUniV2SyncEventID = 0x1c411e9a              // 0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1
+const onSwapExactTokensForTokensEvent = 0xa3f636db // a3f636db0b76da13346d04e9a8970b81e1900067a475fea94400232d170f89c2 //
+const onSwapExactETHForTokensEvent = 0x0
+const SwftSwapEvent = 0x45f377f8
 
 func isBase58(input string) bool {
 	return input[0] == 'T'
@@ -73,6 +78,12 @@ func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, owner s
 		p.onJmSwapEvent(log, tx, ownerAddress, timestamp)
 	case jmUniV2SyncEventID:
 		p.onJmSyncEvent(log, tx, ownerAddress, timestamp)
+	case SwftSwapEvent:
+		p.onSwftSwap(log, tx, ownerAddress, timestamp)
+	case onSwapExactTokensForTokensEvent:
+		p.onSwapExactTokensForTokens(log, tx, ownerAddress, timestamp)
+	case onSwapExactETHForTokensEvent:
+		p.onSwapExactETHForTokens(log, tx, ownerAddress, timestamp)
 	}
 }
 
@@ -207,6 +218,43 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 		ValueUSD:    valueUSD,
 	}
 	p.state.AddTrade(&swap)
+}
+
+func (p *Parser) onSwapExactTokensForTokens(log tronApi.Log, tx string, address *tronApi.Address, timestamp int64) {
+	event, err := p.abiHolder.ExchangeRouterAbi.EventByID(common.HexToHash(log.Topics[0]))
+
+	if err != nil {
+		p.log.Debug("Unpack error", zap.Error(err))
+		return
+	}
+	data := make(map[string]any)
+	if event != nil {
+		// Unpack log into map
+		err2 := event.Inputs.UnpackIntoMap(data, common.FromHex(log.Data))
+		if err2 != nil {
+			p.log.Debug("Unpack error", zap.Error(err2))
+			return
+		}
+		zap.L().Info("lekkek")
+	}
+}
+
+func (p *Parser) onSwapExactETHForTokens(log tronApi.Log, tx string, address *tronApi.Address, timestamp int64) {
+	event, err := p.abiHolder.ExchangeRouterAbi.EventByID(common.HexToHash(log.Topics[0]))
+
+	if err != nil {
+		p.log.Debug("Unpack error", zap.Error(err))
+		return
+	}
+	data := make(map[string]any)
+	if event != nil {
+		// Unpack log into map
+		err2 := event.Inputs.UnpackIntoMap(data, common.FromHex(log.Data))
+		if err2 != nil {
+			p.log.Debug("Unpack error", zap.Error(err2))
+			return
+		}
+	}
 }
 
 func calculateValueUSD(amount0, amount1, ausd, busd decimal.Decimal) decimal.Decimal {
