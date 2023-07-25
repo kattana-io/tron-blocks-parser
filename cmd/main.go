@@ -37,11 +37,10 @@ func main() {
 	 */
 	runner := runway.Create()
 	logger := runner.Logger()
-	abiHolder := abi.Create(logger)
-	registerCommandLineFlags(logger)
+	abiHolder := abi.Create()
+	registerCommandLineFlags()
 	mode, topic := getRunningMode()
 	redis := runner.Redis()
-	runner.Run()
 
 	quotesFile := helper.NewQuotesFile()
 	tokenLists := integrations.NewTokensListProvider(logger)
@@ -105,11 +104,11 @@ func main() {
 }
 
 func handleTermination(publisher *transport.Publisher, reader *transport.Consumer) {
-	fmt.Println("Start terminating process")
+	zap.L().Info("Start terminating process")
 	reader.Close()
 	publisher.Close()
 	time.Sleep(shutdownTimeout * time.Second)
-	fmt.Println("Finish")
+	zap.L().Info("Finish")
 }
 
 // Check if we should fill cache for dev purpose
@@ -138,7 +137,7 @@ func createAPI(nodeURL string, logger *zap.Logger) *tronApi.API {
 	return api
 }
 
-// getRunningMode - decide should we consumer live or history
+// getRunningMode - decide should we consume live or history
 func getRunningMode() (mode string, topic models.Topics) {
 	mode = viper.GetString("mode")
 
@@ -150,17 +149,17 @@ func getRunningMode() (mode string, topic models.Topics) {
 	return mode, topic
 }
 
-func registerCommandLineFlags(logger *zap.Logger) {
+func registerCommandLineFlags() {
 	rootCmd := &cobra.Command{}
 	rootCmd.Flags().String("mode", string(models.LIVE), "Please provide mode: --mode LIVE or --mode HISTORY")
 
 	err := viper.BindPFlag("mode", rootCmd.Flags().Lookup("mode"))
 	if err != nil {
-		logger.Fatal(err.Error())
+		zap.L().Fatal("registerCommandLineFlags: BindPFlag", zap.Error(err))
 	}
 
 	err = rootCmd.Execute()
 	if err != nil {
-		logger.Fatal(err.Error())
+		zap.L().Fatal("registerCommandLineFlags: Execute", zap.Error(err))
 	}
 }

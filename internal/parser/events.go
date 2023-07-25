@@ -36,6 +36,8 @@ const listingEvent = 0x9d42cb01
 const jmListingEvent = 0x0d3648bd
 const jmUniv2SwapEvent = 0xd78ad95f
 const jmUniV2SyncEventID = 0x1c411e9a // 0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1
+const SwftSwapEvent = 0x45f377f8
+const Univ3EventidShort = 0xc42079f9
 
 func isBase58(input string) bool {
 	return input[0] == 'T'
@@ -73,6 +75,10 @@ func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, owner s
 		p.onJmSwapEvent(log, tx, ownerAddress, timestamp)
 	case jmUniV2SyncEventID:
 		p.onJmSyncEvent(log, tx, ownerAddress, timestamp)
+	case SwftSwapEvent:
+		p.onSwftSwap(log, tx, ownerAddress, timestamp)
+	case Univ3EventidShort:
+		p.onUniV3Swap(log, tx, ownerAddress, timestamp)
 	}
 }
 
