@@ -16,7 +16,7 @@ func wrapETHAddress(input common.Address) *tronApi.Address {
 
 const swftswapProtocol = "swftswap"
 
-func (p *Parser) onSwftSwap(log tronApi.Log, tx string, address *tronApi.Address, timestamp int64) {
+func (p *Parser) onSwftSwap(log tronApi.Log, tx string, _ *tronApi.Address, timestamp int64) {
 	event, err := p.abiHolder.SwftSwapAbi.EventByID(common.HexToHash(log.Topics[0]))
 
 	if err != nil {
