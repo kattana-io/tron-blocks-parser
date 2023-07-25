@@ -33,7 +33,7 @@ func (p *Parser) onSwftSwap(log tronApi.Log, tx string, address *tronApi.Address
 		}
 		fromAmount := data["fromAmount"].(*big.Int)
 		fromToken := data["fromToken"].(common.Address)
-		dstToken := data["destination"].(common.Address)
+		dstToken := common.HexToAddress(data["destination"].(string))
 		minReturnAmount := data["minReturnAmount"].(*big.Int)
 		sender := data["sender"].(common.Address)
 
@@ -65,7 +65,7 @@ func (p *Parser) onSwftSwap(log tronApi.Log, tx string, address *tronApi.Address
 
 		dSwap := commonModels.DirectSwap{
 			Tx:          tx,
-			Date:        time.UnixMicro(timestamp),
+			Date:        time.Unix(timestamp, 0),
 			Chain:       Chain,
 			BlockNumber: p.state.Block.Number.Uint64(),
 			Protocol:    swftswapProtocol,
