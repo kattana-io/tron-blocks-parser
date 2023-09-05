@@ -38,6 +38,7 @@ func (p *Parser) GetPairTokens(pair *tronApi.Address, klass string) (tokenA, tok
 }
 
 func (p *Parser) createToken(address *tronApi.Address) models.Token {
+	// Step 1: fetch from cached token list
 	dec, ok := p.tokenLists.GetDecimals(address)
 	if ok {
 		p.log.Info("fetched decimals from list for token ", zap.String("address", address.ToBase58()))
@@ -46,10 +47,10 @@ func (p *Parser) createToken(address *tronApi.Address) models.Token {
 			Decimals: dec,
 		}
 	}
-
+	// Step 2: do a static call for trc20 token
 	dec, err := p.api.GetTokenDecimals(address.ToHex())
 	if err != nil {
-		p.log.Error("createToken", zap.Error(err))
+		p.log.Error("createToken: GetTokenDecimals", zap.Error(err))
 	}
 	return models.Token{
 		Address:  address.ToBase58(),
