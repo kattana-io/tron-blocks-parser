@@ -17,7 +17,7 @@ const (
 	usdtDecimals = 6
 )
 
-func (p *Parser) GetPairTokens(pair *tronApi.Address, klass string) (*models.Token, *models.Token, bool) {
+func (p *Parser) GetPairTokens(pair *tronApi.Address, klass string) (tokenA, tokenB *models.Token, ok bool) {
 	ctx := context.Background()
 	// Step 1: Check if pair is present in cache
 	instance, err := p.pairsCache.Get(ctx, pair.ToBase58())
@@ -38,6 +38,15 @@ func (p *Parser) GetPairTokens(pair *tronApi.Address, klass string) (*models.Tok
 }
 
 func (p *Parser) createToken(address *tronApi.Address) models.Token {
+	dec, ok := p.tokenLists.GetDecimals(address)
+	if ok {
+		p.log.Info("fetched decimals from list for token ", zap.String("address", address.ToBase58()))
+		return models.Token{
+			Address:  address.ToBase58(),
+			Decimals: dec,
+		}
+	}
+
 	dec, err := p.api.GetTokenDecimals(address.ToHex())
 	if err != nil {
 		p.log.Error("createToken", zap.Error(err))
