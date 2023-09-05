@@ -43,8 +43,9 @@ func main() {
 	redis := runner.Redis()
 
 	quotesFile := helper.NewQuotesFile()
-	tokenLists := integrations.NewTokensListProvider(logger)
-	pairsCache := cache.NewPairsCache(redis, logger)
+	tokenLists := integrations.NewTokensListProvider()
+	sunswapLists := integrations.NewSunswapProvider()
+	pairsCache := cache.NewPairsCache(redis)
 
 	logger.Info(fmt.Sprintf("Start parser in %s mode", mode))
 	publisher := transport.NewPublisher("parser.sys.parsed", os.Getenv("KAFKA"), logger)
@@ -69,13 +70,12 @@ func main() {
 			logger.Info("Received null block number, skipping")
 			return true
 		}
-
 		/**
 		 * Process block
 		 */
-		api := createAPI(block.Node, logger)
+		api := createAPI(block.Node)
 		fiatConverter := converters.CreateConverter(redis, logger, &block, quotesFile.Get())
-		p := parser.New(api, logger, tokenLists, pairsCache, fiatConverter, abiHolder)
+		p := parser.New(api, tokenLists, pairsCache, fiatConverter, abiHolder, sunswapLists)
 		ok := p.Parse(block)
 		if ok {
 			encodedHolders := p.GetEncodedHolders()
@@ -105,16 +105,16 @@ func handleTermination(publisher *transport.Publisher, reader *transport.Consume
 	zap.L().Info("Finish")
 }
 
-func createAPI(nodeURL string, logger *zap.Logger) *tronApi.API {
+func createAPI(nodeURL string) *tronApi.API {
 	var provider url.APIURLProvider
 	if nodeURL == "" {
-		logger.Info("Using trongrid adapter")
+		zap.L().Info("Using trongrid adapter")
 		provider = url.NewTrongridURLProvider()
 	} else {
-		logger.Info("Using node adapter")
+		zap.L().Info("Using node adapter")
 		provider = url.NewNodeURLProvider(nodeURL)
 	}
-	api := tronApi.NewAPI(nodeURL, logger, provider)
+	api := tronApi.NewAPI(nodeURL, zap.L(), provider)
 	return api
 }
 

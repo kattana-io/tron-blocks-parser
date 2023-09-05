@@ -39,20 +39,18 @@ func fetch() (map[string]Token, error) {
 }
 
 type TokenListsProvider struct {
-	log      *zap.Logger
 	ok       bool
 	decimals *sync.Map
 }
 
-func NewTokensListProvider(log *zap.Logger) *TokenListsProvider {
+func NewTokensListProvider() *TokenListsProvider {
 	list, err := fetch()
 	ok := err == nil
 	if ok {
-		log.Info(fmt.Sprintf("Loaded %d tokens", len(list)))
+		zap.L().Info(fmt.Sprintf("Loaded %d tokens", len(list)))
 	}
 
 	return &TokenListsProvider{
-		log:      log,
 		ok:       ok,
 		decimals: createDecimalsList(list),
 	}

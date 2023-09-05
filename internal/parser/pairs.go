@@ -92,12 +92,10 @@ func (p *Parser) CreatePair(_ context.Context, addr *tronApi.Address, klass stri
 				Decimals: trxDecimals,
 			},
 		}
-		// Spike for broken pair
-		if addr.ToBase58() == brokenPair {
-			pair.Token0 = models.Token{
-				Address:  usdtAddress,
-				Decimals: usdtDecimals,
-			}
+		// optimal cache flow
+		token0, ok := p.sunswapPairs.GetToken(addr.ToBase58())
+		if ok {
+			pair.Token0 = token0
 			return &pair, true
 		}
 		// Default flow
@@ -121,6 +119,7 @@ func (p *Parser) CreatePair(_ context.Context, addr *tronApi.Address, klass stri
 	return nil, false
 }
 
+// GetSunswapToken - NOTICE This could fail due to "this node doesnt support constant"
 func (p *Parser) GetSunswapToken(addr *tronApi.Address) (string, bool) {
 	data, err := p.api.TCCRequest(map[string]any{
 		"contract_address":  addr.ToHex(),

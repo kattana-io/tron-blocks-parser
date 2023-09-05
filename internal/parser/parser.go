@@ -17,14 +17,15 @@ import (
 
 type Parser struct {
 	api           *tronApi.API
-	log           *zap.Logger
 	failedTx      []tronApi.Transaction
 	txMap         sync.Map
 	state         *State
-	tokenLists    *integrations.TokenListsProvider
 	pairsCache    cache.PairCache
 	fiatConverter *converters.FiatConverter
 	abiHolder     *abi.Holder
+	tokenLists    *integrations.TokenListsProvider
+	sunswapPairs  *integrations.SunswapProvider
+	log           *zap.SugaredLogger
 }
 
 // Parse - parse single block
@@ -33,7 +34,7 @@ func (p *Parser) Parse(block models.Block) bool {
 
 	resp, err := p.api.GetBlockByNum(int32(block.Number.Int64()))
 	if resp.BlockID == "" {
-		p.log.Sugar().Error("could not receive block: ", zap.Error(err))
+		p.log.Error("could not receive block: ", zap.Error(err))
 		return false
 	}
 	if err != nil {
@@ -139,19 +140,20 @@ func (p *Parser) GetTokenDecimals(address *tronApi.Address) (int32, bool) {
 }
 
 func New(api *tronApi.API,
-	log *zap.Logger,
 	lists *integrations.TokenListsProvider,
 	pairsCache cache.PairCache,
 	converter *converters.FiatConverter,
-	abiHolder *abi.Holder) *Parser {
+	abiHolder *abi.Holder,
+	swLists *integrations.SunswapProvider) *Parser {
 	return &Parser{
 		fiatConverter: converter,
 		api:           api,
-		log:           log,
+		log:           zap.L().Sugar(),
 		failedTx:      []tronApi.Transaction{},
 		txMap:         sync.Map{},
 		tokenLists:    lists,
 		pairsCache:    pairsCache,
 		abiHolder:     abiHolder,
+		sunswapPairs:  swLists,
 	}
 }

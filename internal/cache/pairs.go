@@ -20,18 +20,17 @@ const ttl = time.Hour * 96
 
 type RedisPairsCache struct {
 	redis *redis.Client
-	log   *zap.Logger
 }
 
 func (p *RedisPairsCache) Set(ctx context.Context, address string, pair *models.Pair) error {
 	b, err := json.Marshal(pair)
 	if err != nil {
-		p.log.Error("Set, json", zap.Error(err))
+		zap.L().Error("Set, json", zap.Error(err))
 		return err
 	}
 
 	if err = p.redis.Set(ctx, p.Key(address), b, ttl).Err(); err != nil {
-		p.log.Error("Set, write to redis", zap.Error(err))
+		zap.L().Error("Set, write to redis", zap.Error(err))
 		return err
 	}
 
@@ -44,13 +43,13 @@ func (p *RedisPairsCache) Get(ctx context.Context, address string) (*models.Pair
 		return nil, err
 	}
 	if err != nil {
-		p.log.Error("get: ", zap.Error(err))
+		zap.L().Error("get: ", zap.Error(err))
 		return nil, err
 	}
 
 	var data models.Pair
 	if err := json.Unmarshal(val, &data); err != nil {
-		p.log.Error("get: ", zap.Error(err))
+		zap.L().Error("get: ", zap.Error(err))
 		return nil, err
 	}
 
@@ -61,9 +60,8 @@ func (p *RedisPairsCache) Key(address string) string {
 	return fmt.Sprintf("parser:TRON:pair:v2:%s", address)
 }
 
-func NewPairsCache(redis *redis.Client, log *zap.Logger) PairCache {
+func NewPairsCache(redis *redis.Client) PairCache {
 	return &RedisPairsCache{
 		redis: redis,
-		log:   log,
 	}
 }
