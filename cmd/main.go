@@ -46,12 +46,6 @@ func main() {
 	tokenLists := integrations.NewTokensListProvider(logger)
 	pairsCache := cache.NewPairsCache(redis, logger)
 
-	nodeURL := os.Getenv("FULL_NODE_URL")
-	apiForCache := createAPI(nodeURL, logger)
-	jmPairsCache := cache.CreateJMPairsCache(redis, apiForCache, tokenLists, logger)
-
-	shouldWarmupCache(pairsCache)
-
 	logger.Info(fmt.Sprintf("Start parser in %s mode", mode))
 	publisher := transport.NewPublisher("parser.sys.parsed", os.Getenv("KAFKA"), logger)
 	publisherHolders := transport.NewPublisher("holders_blocks", os.Getenv("KAFKA"), logger)
@@ -81,7 +75,7 @@ func main() {
 		 */
 		api := createAPI(block.Node, logger)
 		fiatConverter := converters.CreateConverter(redis, logger, &block, quotesFile.Get())
-		p := parser.New(api, logger, tokenLists, pairsCache, fiatConverter, abiHolder, jmPairsCache)
+		p := parser.New(api, logger, tokenLists, pairsCache, fiatConverter, abiHolder)
 		ok := p.Parse(block)
 		if ok {
 			encodedHolders := p.GetEncodedHolders()
@@ -109,19 +103,6 @@ func handleTermination(publisher *transport.Publisher, reader *transport.Consume
 	publisher.Close()
 	time.Sleep(shutdownTimeout * time.Second)
 	zap.L().Info("Finish")
-}
-
-// Check if we should fill cache for dev purpose
-func shouldWarmupCache(pairsCache *cache.PairsCache) {
-	warmupFlag := os.Getenv("PAIRS_WARMUP")
-	warmup := warmupFlag == "true"
-
-	if warmup {
-		ssa := integrations.NewSunswapStatisticsAdapter()
-		if ssa.Ok {
-			pairsCache.Warmup(ssa.TokenPairs)
-		}
-	}
 }
 
 func createAPI(nodeURL string, logger *zap.Logger) *tronApi.API {

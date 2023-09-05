@@ -3,6 +3,7 @@ package parser
 import (
 	"github.com/ethereum/go-ethereum/common"
 	commonModels "github.com/kattana-io/models/pkg/storage"
+	abstractPair "github.com/kattana-io/tron-blocks-parser/internal/pair"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
@@ -45,19 +46,19 @@ func (p *Parser) onUniV3Swap(log tronApi.Log, tx string, owner *tronApi.Address,
 			return
 		}
 
-		tokenA, decimalsA, tokenB, decimalsB, ok := p.GetUniv2PairTokens(pair)
+		tokenA, tokenB, ok := p.GetPairTokens(pair, abstractPair.UniV3)
 		if !ok {
 			p.log.Error("Could not dissolve univ2 pair: " + tx)
 			return
 		}
 
-		naturalA := decimal.NewFromBigInt(Amount0, -decimalsA).Abs()
-		naturalB := decimal.NewFromBigInt(Amount1, -decimalsB).Abs()
+		naturalA := decimal.NewFromBigInt(Amount0, -tokenA.Decimals).Abs()
+		naturalB := decimal.NewFromBigInt(Amount1, -tokenB.Decimals).Abs()
 
 		PriceA := naturalB.Div(naturalA)
 		PriceB := naturalA.Div(naturalB)
 
-		PriceAUSD, PriceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, PriceA)
+		PriceAUSD, PriceBUSD := p.fiatConverter.ConvertAB(tokenA.Address, tokenB.Address, PriceA)
 
 		trade := commonModels.PairSwap{
 			Tx:          tx,

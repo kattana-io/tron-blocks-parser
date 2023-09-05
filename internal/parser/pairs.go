@@ -2,98 +2,127 @@ package parser
 
 import (
 	"context"
-	"fmt"
-	"github.com/kattana-io/tron-blocks-parser/internal/intermediate"
+	"github.com/kattana-io/tron-blocks-parser/internal/models"
+	abstractPair "github.com/kattana-io/tron-blocks-parser/internal/pair"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
-	"github.com/kattana-io/tron-objects-api/pkg/trc20"
-	"time"
+	jmPair "github.com/kattana-io/tron-objects-api/pkg/justmoney"
+	"go.uber.org/zap"
 )
 
-const trxTokenAddress = "TRX"
-const trxDecimals = 6
+const (
+	trxAddress   = "TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR"
+	trxDecimals  = 6
+	brokenPair   = "TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE"
+	usdtAddress  = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+	usdtDecimals = 6
+)
 
-// GetCachePairToken - Try to pull from cache or populate cache
-//
-//nolint:gocritic
-func (p *Parser) GetCachePairToken(address *tronApi.Address) (string, int32, bool) {
-	pair, err := p.pairsCache.Value(context.Background(), address.ToBase58())
+func (p *Parser) GetPairTokens(pair *tronApi.Address, klass string) (*models.Token, *models.Token, bool) {
+	ctx := context.Background()
+	// Step 1: Check if pair is present in cache
+	instance, err := p.pairsCache.Get(ctx, pair.ToBase58())
 	if err != nil {
-		pInstance := intermediate.Pair{Address: address.ToBase58()}
-		hexTokenAddress, err := p.api.GetPairToken(address.ToHex())
-		if err != nil {
-			p.log.Error("GetCachePairToken: " + err.Error())
-			return "", 0, false
-		}
-		if hexTokenAddress == "" {
-			p.log.Error("Couldn't get token address for pair: " + address.ToBase58())
-			return "", 0, false
-		}
-		tokenAddr := tronApi.FromHex(hexTokenAddress)
-		// Check list
-		decimals, ok := p.tokenLists.GetDecimals(tokenAddr)
+		// Step 2: Create pair instance
+		inst, ok := p.CreatePair(ctx, pair, klass)
 		if ok {
-			pInstance.SetToken(tokenAddr.ToBase58(), decimals)
-		} else {
-			// Call API
-			token := trc20.New(p.api, tokenAddr)
-			dec, ok := token.TryToGetDecimals(0)
-			if !ok {
-				p.log.Error("TryToGetDecimals: tried 5 times w/o result")
-				return "", 0, false
+			err = p.pairsCache.Set(ctx, pair.ToBase58(), inst)
+			if err != nil {
+				p.log.Error("GetPairTokens, set pair", zap.Error(err))
 			}
-			pInstance.SetToken(tokenAddr.ToBase58(), dec)
+			return &inst.Token0, &inst.Token1, true
 		}
-		err2 := p.pairsCache.Store(context.Background(), address.ToBase58(), pInstance, time.Hour*2)
-		if err2 != nil {
-			p.log.Error("Could not put into cache: " + err2.Error())
-		}
-		return pInstance.Token.Address, pInstance.Token.Decimals, true
+		// Step 3: If we failed to fetch than return nil
+		return nil, nil, false
 	}
-	return pair.Token.Address, pair.Token.Decimals, true
+	return &instance.Token0, &instance.Token1, true
 }
 
-// GetPairTokens - Get tokens of pair
-//
-//nolint:gocritic
-func (p *Parser) GetPairTokens(address *tronApi.Address) (string, int32, string, int32, bool) {
-	adr, decimals, ok := p.GetCachePairToken(address)
-	if ok {
-		return adr, decimals, trxTokenAddress, trxDecimals, true
-	}
-
-	// Cache miss
-	hexTokenAddress, err := p.api.GetPairToken(address.ToHex())
+func (p *Parser) createToken(address *tronApi.Address) models.Token {
+	dec, err := p.api.GetTokenDecimals(address.ToHex())
 	if err != nil {
-		p.log.Error(fmt.Sprintf("GetPairToken: %s", err.Error()))
-		return "", 0, trxTokenAddress, trxDecimals, false
+		p.log.Error("createToken", zap.Error(err))
 	}
-	if hexTokenAddress == "" {
-		p.log.Error("Couldn't get token address for pair: " + address.ToBase58())
-		return "", 0, trxTokenAddress, trxDecimals, false
+	return models.Token{
+		Address:  address.ToBase58(),
+		Decimals: dec,
 	}
-	tokenAddr := tronApi.FromHex(hexTokenAddress)
-	cachedDecimals, ok := p.tokenLists.GetDecimals(tokenAddr)
-	if ok {
-		return tokenAddr.ToBase58(), cachedDecimals, trxTokenAddress, trxDecimals, true
-	}
-
-	token := trc20.New(p.api, tokenAddr)
-	decimals, ok = token.TryToGetDecimals(0)
-	if !ok {
-		p.log.Error("TryToGetDecimals: tried 5 times w/o result")
-		return "", 0, trxTokenAddress, trxDecimals, false
-	}
-	return tokenAddr.ToBase58(), decimals, trxTokenAddress, trxDecimals, true
 }
 
-// GetUniv2PairTokens - dissolve univ2-like pair into set of tokens
-//
-//nolint:gocritic
-func (p *Parser) GetUniv2PairTokens(address *tronApi.Address) (string, int32, string, int32, bool) {
-	pair, ok := p.jmcache.GetPair(Chain, address)
-	if ok {
-		return pair.TokenA.Address, int32(pair.TokenA.Decimals), pair.TokenB.Address, int32(pair.TokenB.Decimals), true
+func (p *Parser) CreatePair(_ context.Context, addr *tronApi.Address, klass string) (*models.Pair, bool) {
+	switch klass {
+	case abstractPair.UniV2:
+	case abstractPair.UniV3: // uniV3 same function names
+		instance := jmPair.New(p.api, *addr)
+		addr0, err := instance.Token0()
+		if err != nil {
+			p.log.Error("could not fetch token0",
+				zap.Error(err),
+				zap.String("pair", addr.ToBase58()))
+			return nil, false
+		}
+		addr1, err := instance.Token1()
+		if err != nil {
+			p.log.Error("could not fetch token1",
+				zap.Error(err),
+				zap.String("pair", addr.ToBase58()))
+			return nil, false
+		}
+		return &models.Pair{
+			Address: addr.ToBase58(),
+			Klass:   klass,
+			Token0:  p.createToken(addr0),
+			Token1:  p.createToken(addr1),
+		}, true
+	case abstractPair.Sunswap:
+		pair := models.Pair{
+			Address: addr.ToBase58(),
+			Klass:   abstractPair.Sunswap,
+			Token1: models.Token{
+				Address:  trxAddress,
+				Decimals: trxDecimals,
+			},
+		}
+		// Spike for broken pair
+		if addr.ToBase58() == brokenPair {
+			pair.Token0 = models.Token{
+				Address:  usdtAddress,
+				Decimals: usdtDecimals,
+			}
+			return &pair, true
+		}
+		// Default flow
+		addr0, ok := p.GetSunswapToken(addr)
+		if !ok {
+			p.log.Error("Sunswap: could not fetch tokenAddress",
+				zap.String("pair", addr.ToBase58()))
+			return nil, false
+		}
+		if addr0 == "" {
+			return nil, false
+		}
+		tokenAddr := tronApi.FromHex(addr0)
+		pair.Token0 = p.createToken(tokenAddr)
+
+		return &pair, true
+	default:
+		p.log.Error("unknown pair type", zap.String("klass", klass))
+		return nil, false
+	}
+	return nil, false
+}
+
+func (p *Parser) GetSunswapToken(addr *tronApi.Address) (string, bool) {
+	data, err := p.api.TCCRequest(map[string]any{
+		"contract_address":  addr.ToHex(),
+		"owner_address":     "4128fb7be6c95a27217e0e0bff42ca50cd9461cc9f",
+		"function_selector": "tokenAddress()",
+		"parameter":         "",
+		"call_value":        0,
+	})
+
+	if err != nil || len(data.ConstantResult) == 0 {
+		return "", false
 	}
 
-	return "", 0, "", 0, false
+	return tronApi.TrimZeroes(data.ConstantResult[0]), true
 }

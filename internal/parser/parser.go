@@ -16,17 +16,15 @@ import (
 )
 
 type Parser struct {
-	api              *tronApi.API
-	log              *zap.Logger
-	failedTx         []tronApi.Transaction
-	txMap            sync.Map
-	state            *State
-	tokenLists       *integrations.TokenListsProvider
-	pairsCache       *cache.PairsCache
-	fiatConverter    *converters.FiatConverter
-	abiHolder        *abi.Holder
-	jmcache          *cache.JMPairsCache
-	whiteListedPairs *sync.Map
+	api           *tronApi.API
+	log           *zap.Logger
+	failedTx      []tronApi.Transaction
+	txMap         sync.Map
+	state         *State
+	tokenLists    *integrations.TokenListsProvider
+	pairsCache    cache.PairCache
+	fiatConverter *converters.FiatConverter
+	abiHolder     *abi.Holder
 }
 
 // Parse - parse single block
@@ -35,7 +33,7 @@ func (p *Parser) Parse(block models.Block) bool {
 
 	resp, err := p.api.GetBlockByNum(int32(block.Number.Int64()))
 	if resp.BlockID == "" {
-		p.log.Sugar().Errorf("Could not receive block: ", zap.Error(err))
+		p.log.Sugar().Error("could not receive block: ", zap.Error(err))
 		return false
 	}
 	if err != nil {
@@ -77,6 +75,7 @@ func isSuccessCall(transaction *tronApi.Transaction) bool {
 	return transaction.Ret[0].ContractRet == "SUCCESS"
 }
 
+// parseTransactions - downloads block transactions and logs
 func (p *Parser) parseTransactions(blockNumber int64) {
 	resp, err := p.api.GetTransactionInfoByBlockNum(blockNumber)
 
@@ -84,13 +83,11 @@ func (p *Parser) parseTransactions(blockNumber int64) {
 		p.log.Error("parseTransaction: " + err.Error())
 		return
 	}
-	wg := sync.WaitGroup{}
 
 	for _, tx := range resp {
 		if tx.Receipt.Result != "SUCCESS" {
 			continue
 		}
-		wg.Add(len(tx.Log))
 
 		// Process logs
 		for _, log := range tx.Log {
@@ -102,10 +99,9 @@ func (p *Parser) parseTransactions(blockNumber int64) {
 			}
 			owner := txRaw.(*tronApi.Transaction).RawData.Contract[0].Parameter.Value.OwnerAddress
 
-			go p.processLog(log, tx.ID, t, owner, &wg)
+			p.processLog(log, tx.ID, t, owner)
 		}
 	}
-	wg.Wait()
 }
 
 func (p *Parser) GetEncodedBlock() []byte {
@@ -145,29 +141,17 @@ func (p *Parser) GetTokenDecimals(address *tronApi.Address) (int32, bool) {
 func New(api *tronApi.API,
 	log *zap.Logger,
 	lists *integrations.TokenListsProvider,
-	pairsCache *cache.PairsCache,
+	pairsCache cache.PairCache,
 	converter *converters.FiatConverter,
-	abiHolder *abi.Holder,
-	jmCache *cache.JMPairsCache) *Parser {
-	whiteListedPairs := sync.Map{}
-	whiteListedPairs.Store("TFGDbUyP8xez44C76fin3bn3Ss6jugoUwJ", true) // TRX-USDT v2
-	whiteListedPairs.Store("TNLcz8A9hGKbTNJ6b6C1GTyigwxURbWzkM", true) // USDD-USDT
-	whiteListedPairs.Store("TQcia2H2TU3WrFk9sKtdK9qCfkW8XirfPQ", true) // TRX-USDJ
-	whiteListedPairs.Store("TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE", true) // USDT-TRX
-	whiteListedPairs.Store("TXX1i3BWKBuTxUmTERCztGyxSSpRagEcjX", true) // USDC-TRX
-	whiteListedPairs.Store("TSJWbBJAS8HgQCMJfY5drVwYDa7JBAm6Es", true) // USDD-TRX
-	whiteListedPairs.Store("TYukBQZ2XXCcRCReAUguyXncCWNY9CEiDQ", true) // JST-TRX
-
+	abiHolder *abi.Holder) *Parser {
 	return &Parser{
-		jmcache:          jmCache,
-		fiatConverter:    converter,
-		api:              api,
-		log:              log,
-		failedTx:         []tronApi.Transaction{},
-		txMap:            sync.Map{},
-		tokenLists:       lists,
-		pairsCache:       pairsCache,
-		abiHolder:        abiHolder,
-		whiteListedPairs: &whiteListedPairs,
+		fiatConverter: converter,
+		api:           api,
+		log:           log,
+		failedTx:      []tronApi.Transaction{},
+		txMap:         sync.Map{},
+		tokenLists:    lists,
+		pairsCache:    pairsCache,
+		abiHolder:     abiHolder,
 	}
 }

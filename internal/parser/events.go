@@ -7,12 +7,12 @@ package parser
 import (
 	"math/big"
 	"os"
-	"sync"
 	"time"
 
 	commonModels "github.com/kattana-io/models/pkg/storage"
 	"github.com/kattana-io/tron-blocks-parser/internal/helper"
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
+	abstractPair "github.com/kattana-io/tron-blocks-parser/internal/pair"
 	tronApi "github.com/kattana-io/tron-objects-api/pkg/api"
 	"github.com/shopspring/decimal"
 )
@@ -50,8 +50,7 @@ func getAddressObject(pair string) *tronApi.Address {
 	return tronApi.FromHex(pair)
 }
 
-func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, owner string, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (p *Parser) processLog(log tronApi.Log, tx string, timestamp int64, owner string) {
 	if len(log.Topics) < 1 {
 		return
 	}
@@ -117,7 +116,7 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 	pair := tronApi.FromHex(log.Address)
 	buyer := tronApi.TrimZeroes(log.Topics[1])
 	// Dissolve pair
-	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(pair)
+	tokenA, tokenB, ok := p.GetPairTokens(pair, abstractPair.Sunswap)
 
 	if !ok {
 		p.log.Error("Could not dissolve pair: onTokenPurchase")
@@ -128,8 +127,8 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 	tokenAmountRaw := helper.TronValueToDecimal(log.Topics[3])
 
 	// Convert to natural amounts by dropping decimals
-	trxAmount := trxAmountRaw.Div(decimal.New(1, decimals1))
-	tokenAmount := tokenAmountRaw.Div(decimal.New(1, decimals0))
+	trxAmount := trxAmountRaw.Div(decimal.New(1, tokenB.Decimals))
+	tokenAmount := tokenAmountRaw.Div(decimal.New(1, tokenA.Decimals))
 
 	if tokenAmount.IsZero() || trxAmount.IsZero() {
 		p.log.Warn("Skipping division by zero")
@@ -139,7 +138,7 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 	priceA := trxAmount.Div(tokenAmount)
 	priceB := tokenAmount.Div(trxAmount)
 
-	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
+	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA.Address, tokenB.Address, priceA)
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
 	swap := commonModels.PairSwap{
@@ -168,7 +167,7 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	pair := tronApi.FromHex(log.Address)
 	buyer := tronApi.TrimZeroes(log.Topics[1])
 	// Dissolve pair
-	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(pair)
+	tokenA, tokenB, ok := p.GetPairTokens(pair, abstractPair.Sunswap)
 
 	if !ok {
 		p.log.Error("Could not dissolve tokens: onTrxPurchase")
@@ -179,8 +178,8 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	trxAmountRaw := helper.TronValueToDecimal(log.Topics[3])
 
 	// Convert to natural amounts by dropping decimals
-	tokenAmount := tokenAmountRaw.Div(decimal.New(1, decimals0))
-	trxAmount := trxAmountRaw.Div(decimal.New(1, decimals1))
+	tokenAmount := tokenAmountRaw.Div(decimal.New(1, tokenA.Decimals))
+	trxAmount := trxAmountRaw.Div(decimal.New(1, tokenB.Decimals))
 
 	if tokenAmount.IsZero() || trxAmount.IsZero() {
 		p.log.Warn("Skipping division by zero")
@@ -191,7 +190,7 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	priceA := trxAmount.Div(tokenAmount)
 	priceB := tokenAmount.Div(trxAmount)
 
-	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
+	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA.Address, tokenB.Address, priceA)
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
 	swap := commonModels.PairSwap{
@@ -236,7 +235,7 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 	operator := tronApi.TrimZeroes(log.Topics[1])
 
 	// Dissolve pair
-	tokenA, decimals0, tokenB, decimals1, ok := p.GetPairTokens(pair)
+	tokenA, tokenB, ok := p.GetPairTokens(pair, abstractPair.Sunswap)
 
 	if !ok {
 		p.log.Error("Could not dissolve tokens: onTrxPurchase")
@@ -247,8 +246,8 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 	tokenAmountRaw := helper.TronValueToDecimal(log.Topics[3])
 
 	// Convert to natural amounts by dropping decimals
-	tokenAmount := tokenAmountRaw.Div(decimal.New(1, decimals0))
-	trxAmount := trxAmountRaw.Div(decimal.New(1, decimals1))
+	tokenAmount := tokenAmountRaw.Div(decimal.New(1, tokenA.Decimals))
+	trxAmount := trxAmountRaw.Div(decimal.New(1, tokenB.Decimals))
 
 	if tokenAmount.IsZero() || trxAmount.IsZero() {
 		p.log.Warn("Skipping division by zero")
@@ -259,12 +258,8 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 	priceA := trxAmount.Div(tokenAmount)
 	priceB := tokenAmount.Div(trxAmount)
 
-	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
-	p.fiatConverter.UpdateTokenUSDPrice(tokenA, priceAUSD)
-
-	if p.isPairWhiteListed(pair) {
-		p.fiatConverter.UpdateTokenUSDPrice(trxTokenAddress, priceBUSD)
-	}
+	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA.Address, tokenB.Address, priceA)
+	p.fiatConverter.UpdateTokenUSDPrice(tokenA.Address, priceAUSD)
 
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
@@ -286,14 +281,6 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 		ReserveUSD:  valueUSD,
 	}
 	p.state.AddLiquidity(&syncEvent)
-}
-
-func (p *Parser) isPairWhiteListed(pair *tronApi.Address) bool {
-	pairAddress := pair.ToBase58()
-	if _, ok := p.whiteListedPairs.Load(pairAddress); ok {
-		return true
-	}
-	return false
 }
 
 // onPairCreated - handle listing event
