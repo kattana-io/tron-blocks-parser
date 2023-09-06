@@ -1,6 +1,7 @@
 package parser
 
 import (
+	abstractPair "github.com/kattana-io/tron-blocks-parser/internal/pair"
 	"math/big"
 	"os"
 	"strings"
@@ -85,7 +86,7 @@ func (p *Parser) onJmSyncEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 		reserves0 := data["reserve0"].(*big.Int)
 		reserves1 := data["reserve1"].(*big.Int)
 
-		tokenA, decimalsA, tokenB, decimalsB, ok := p.GetUniv2PairTokens(pair)
+		tokenA, tokenB, ok := p.GetPairTokens(pair, abstractPair.UniV2)
 		if !ok {
 			p.log.Error("Could not dissolve univ2 pair: " + tx)
 			return
@@ -93,18 +94,18 @@ func (p *Parser) onJmSyncEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 
 		// @todo verify price formula
 		priceA := decimal.Decimal{}
-		res0 := decimal.NewFromBigInt(reserves0, -decimalsA)
+		res0 := decimal.NewFromBigInt(reserves0, -tokenA.Decimals)
 		if !res0.IsZero() {
-			priceA = decimal.NewFromBigInt(reserves1, -decimalsB).Div(res0)
+			priceA = decimal.NewFromBigInt(reserves1, -tokenB.Decimals).Div(res0)
 		}
 
 		priceB := decimal.Decimal{}
-		res1 := decimal.NewFromBigInt(reserves1, -decimalsB)
+		res1 := decimal.NewFromBigInt(reserves1, -tokenB.Decimals)
 		if !res1.IsZero() {
-			priceB = decimal.NewFromBigInt(reserves0, -decimalsA).Div(res1)
+			priceB = decimal.NewFromBigInt(reserves0, -tokenA.Decimals).Div(res1)
 		}
 
-		priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
+		priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA.Address, tokenB.Address, priceA)
 
 		reservesUSD := p.calculateReservesInUSD(reserves0, reserves1, priceA, pair)
 
@@ -133,23 +134,18 @@ func (p *Parser) onJmSyncEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 // Dissolve pair into tokens, calculate values
 func (p *Parser) calculateReservesInUSD(reserves0, reserves1 *big.Int, priceA decimal.Decimal, address *tronApi.Address) decimal.Decimal {
 	// Dissolve pair
-	Pair, ok := p.jmcache.GetPair(Chain, address)
+	tokenA, tokenB, ok := p.GetPairTokens(address, abstractPair.UniV2)
 	if !ok {
 		p.log.Warn("[calculateReservesInUSD] Could not get pair:" + address.ToBase58())
 		return decimal.NewFromInt(0)
 	}
-	tokenA := Pair.TokenA.Address
-	decimalsA := Pair.TokenA.Decimals
-	tokenB := Pair.TokenB.Address
-	decimalsB := Pair.TokenB.Decimals
-
 	// Get rate for A
-	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, priceA)
+	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA.Address, tokenB.Address, priceA)
 	if !priceAUSD.IsZero() {
-		return decimal.NewFromBigInt(reserves0, 0).Div(decimal.New(1, int32(decimalsA))).Mul(priceAUSD).Mul(decimal.NewFromInt(2))
+		return decimal.NewFromBigInt(reserves0, 0).Div(decimal.New(1, tokenA.Decimals)).Mul(priceAUSD).Mul(decimal.NewFromInt(2))
 	}
 	if !priceBUSD.IsZero() {
-		return decimal.NewFromBigInt(reserves1, 0).Div(decimal.New(1, int32(decimalsB))).Mul(priceBUSD).Mul(decimal.NewFromInt(2))
+		return decimal.NewFromBigInt(reserves1, 0).Div(decimal.New(1, tokenB.Decimals)).Mul(priceBUSD).Mul(decimal.NewFromInt(2))
 	}
 
 	// return zero
@@ -194,19 +190,19 @@ func (p *Parser) onJmSwapEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 			return
 		}
 
-		tokenA, decimalsA, tokenB, decimalsB, ok := p.GetUniv2PairTokens(pair)
+		tokenA, tokenB, ok := p.GetPairTokens(pair, abstractPair.UniV2)
 		if !ok {
 			p.log.Error("Could not dissolve univ2 pair: " + tx)
 			return
 		}
 
-		naturalA := decimal.NewFromBigInt(Token0Amount, -decimalsA).Abs()
-		naturalB := decimal.NewFromBigInt(Token1Amount, -decimalsB).Abs()
+		naturalA := decimal.NewFromBigInt(Token0Amount, -tokenA.Decimals).Abs()
+		naturalB := decimal.NewFromBigInt(Token1Amount, -tokenB.Decimals).Abs()
 
 		PriceA := naturalB.Div(naturalA)
 		PriceB := naturalA.Div(naturalB)
 
-		PriceAUSD, PriceBUSD := p.fiatConverter.ConvertAB(tokenA, tokenB, PriceA)
+		PriceAUSD, PriceBUSD := p.fiatConverter.ConvertAB(tokenA.Address, tokenB.Address, PriceA)
 
 		trade := commonModels.PairSwap{
 			Tx:          tx,

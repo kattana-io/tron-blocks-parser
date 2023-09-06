@@ -5,6 +5,7 @@ COPY cmd ./cmd
 COPY internal ./internal
 COPY quotes.json ./
 COPY tokens.json ./
+COPY sunswap.json ./
 COPY go.mod go.sum ./
 RUN apk --no-cache add git mercurial ca-certificates
 RUN go mod download
@@ -17,5 +18,6 @@ WORKDIR /root/
 COPY --from=gobuild /build/.bin/app .
 COPY --from=gobuild /build/quotes.json .
 COPY --from=gobuild /build/tokens.json .
+COPY --from=gobuild /build/sunswap.json .
 EXPOSE 8080
 CMD ["./app"]
