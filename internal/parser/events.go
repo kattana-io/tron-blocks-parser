@@ -224,6 +224,10 @@ func calculateValueUSD(amount0, amount1, ausd, busd decimal.Decimal) decimal.Dec
 	return decimal.NewFromInt(0)
 }
 
+const (
+	trxusdtPair = "TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE"
+)
+
 // Snapshot event to sync liquidity
 // topics - operator, trx_balance, token_balance
 func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
@@ -261,6 +265,10 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA.Address, tokenB.Address, priceA)
 	p.fiatConverter.UpdateTokenUSDPrice(tokenA.Address, priceAUSD)
 
+	// Update TRX price on USDT-TRX Pair trade
+	if pair.ToBase58() == trxusdtPair && tokenB.Address == trxAddress {
+		p.fiatConverter.UpdateTokenUSDPrice(tokenB.Address, priceB)
+	}
 	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
 
 	syncEvent := commonModels.LiquidityEvent{
