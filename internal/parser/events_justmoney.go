@@ -106,8 +106,7 @@ func (p *Parser) onJmSyncEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 		}
 
 		priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA.Address, tokenB.Address, priceA)
-
-		reservesUSD := p.calculateReservesInUSD(reserves0, reserves1, priceA, pair)
+		reservesUSD := p.calculateReservesInUSD(reserves0, reserves1, pair, abstractPair.UniV2)
 
 		sync := commonModels.LiquidityEvent{
 			BlockNumber: p.state.Block.Number.Uint64(),
@@ -129,27 +128,6 @@ func (p *Parser) onJmSyncEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 
 		p.state.AddLiquidity(&sync)
 	}
-}
-
-// Dissolve pair into tokens, calculate values
-func (p *Parser) calculateReservesInUSD(reserves0, reserves1 *big.Int, priceA decimal.Decimal, address *tronApi.Address) decimal.Decimal {
-	// Dissolve pair
-	tokenA, tokenB, ok := p.GetPairTokens(address, abstractPair.UniV2)
-	if !ok {
-		p.log.Warn("[calculateReservesInUSD] Could not get pair:" + address.ToBase58())
-		return decimal.NewFromInt(0)
-	}
-	// Get rate for A
-	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA.Address, tokenB.Address, priceA)
-	if !priceAUSD.IsZero() {
-		return decimal.NewFromBigInt(reserves0, 0).Div(decimal.New(1, tokenA.Decimals)).Mul(priceAUSD).Mul(decimal.NewFromInt(2))
-	}
-	if !priceBUSD.IsZero() {
-		return decimal.NewFromBigInt(reserves1, 0).Div(decimal.New(1, tokenB.Decimals)).Mul(priceBUSD).Mul(decimal.NewFromInt(2))
-	}
-
-	// return zero
-	return decimal.NewFromInt(0)
 }
 
 func (p *Parser) onJmSwapEvent(log tronApi.Log, tx string, owner *tronApi.Address, timestamp int64) {
@@ -203,6 +181,7 @@ func (p *Parser) onJmSwapEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 		PriceB := naturalA.Div(naturalB)
 
 		PriceAUSD, PriceBUSD := p.fiatConverter.ConvertAB(tokenA.Address, tokenB.Address, PriceA)
+		ValueUSD := p.calculateValueInUSD(Token0Amount, Token1Amount, pair, abstractPair.UniV2)
 
 		trade := commonModels.PairSwap{
 			Tx:          tx,
@@ -217,7 +196,7 @@ func (p *Parser) onJmSwapEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 			PriceAUSD:   PriceAUSD,
 			PriceB:      PriceB,
 			PriceBUSD:   PriceBUSD,
-			ValueUSD:    calculateValueUSD(naturalA, naturalB, PriceAUSD, PriceBUSD),
+			ValueUSD:    ValueUSD,
 			Bot:         false,
 			Wallet:      owner.ToBase58(),
 			Order:       0,

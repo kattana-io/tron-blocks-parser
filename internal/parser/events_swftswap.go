@@ -62,6 +62,7 @@ func (p *Parser) onSwftSwap(log tronApi.Log, tx string, _ *tronApi.Address, time
 		}
 
 		priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(addrTokenA.ToBase58(), addrTokenB.ToBase58(), priceA)
+		ValueUSD := calculateValueUSDSwftswap(naturalA, naturalB, priceAUSD, priceBUSD)
 
 		dSwap := commonModels.DirectSwap{
 			Tx:          tx,
@@ -79,8 +80,18 @@ func (p *Parser) onSwftSwap(log tronApi.Log, tx string, _ *tronApi.Address, time
 			PriceBUSD:   priceBUSD,
 			Wallet:      wrapETHAddress(sender).ToBase58(),
 			Order:       0,
-			ValueUSD:    calculateValueUSD(naturalA, naturalB, priceAUSD, priceBUSD),
+			ValueUSD:    ValueUSD,
 		}
 		p.state.AddDirectSwap(&dSwap)
 	}
+}
+
+func calculateValueUSDSwftswap(amount0, amount1, ausd, busd decimal.Decimal) decimal.Decimal {
+	if !ausd.IsZero() {
+		return amount0.Mul(ausd)
+	}
+	if !busd.IsZero() {
+		return amount1.Mul(busd)
+	}
+	return decimal.NewFromInt(0)
 }
