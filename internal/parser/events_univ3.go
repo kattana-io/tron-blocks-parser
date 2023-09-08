@@ -59,6 +59,7 @@ func (p *Parser) onUniV3Swap(log tronApi.Log, tx string, owner *tronApi.Address,
 		PriceB := naturalA.Div(naturalB)
 
 		PriceAUSD, PriceBUSD := p.fiatConverter.ConvertAB(tokenA.Address, tokenB.Address, PriceA)
+		ValueUSD := p.calculateValueInUSD(Amount0, Amount1, pair, abstractPair.UniV3)
 
 		trade := commonModels.PairSwap{
 			Tx:          tx,
@@ -73,7 +74,7 @@ func (p *Parser) onUniV3Swap(log tronApi.Log, tx string, owner *tronApi.Address,
 			PriceAUSD:   PriceAUSD,
 			PriceB:      PriceB,
 			PriceBUSD:   PriceBUSD,
-			ValueUSD:    calculateValueUSD(naturalA, naturalB, PriceAUSD, PriceBUSD),
+			ValueUSD:    ValueUSD,
 			Wallet:      owner.ToBase58(),
 		}
 		p.state.AddTrade(&trade)

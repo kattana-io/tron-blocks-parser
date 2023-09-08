@@ -139,7 +139,7 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 	priceB := tokenAmount.Div(trxAmount)
 
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA.Address, tokenB.Address, priceA)
-	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
+	valueUSD := p.calculateReservesInUSD(tokenAmountRaw.BigInt(), trxAmount.BigInt(), pair, abstractPair.Sunswap)
 
 	swap := commonModels.PairSwap{
 		Tx:          tx,
@@ -191,7 +191,7 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	priceB := tokenAmount.Div(trxAmount)
 
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA.Address, tokenB.Address, priceA)
-	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
+	valueUSD := p.calculateReservesInUSD(tokenAmountRaw.BigInt(), trxAmountRaw.BigInt(), pair, abstractPair.Sunswap)
 
 	swap := commonModels.PairSwap{
 		Tx:          tx,
@@ -212,16 +212,6 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 		ValueUSD:    valueUSD,
 	}
 	p.state.AddTrade(&swap)
-}
-
-func calculateValueUSD(amount0, amount1, ausd, busd decimal.Decimal) decimal.Decimal {
-	if !ausd.IsZero() {
-		return amount0.Mul(ausd)
-	}
-	if !busd.IsZero() {
-		return amount1.Mul(busd)
-	}
-	return decimal.NewFromInt(0)
 }
 
 const (
@@ -269,7 +259,7 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 	if pair.ToBase58() == trxusdtPair && tokenB.Address == trxAddress {
 		p.fiatConverter.UpdateTokenUSDPrice(tokenB.Address, priceB)
 	}
-	valueUSD := calculateValueUSD(tokenAmount, trxAmount, priceAUSD, priceBUSD)
+	valueUSD := p.calculateReservesInUSD(tokenAmountRaw.BigInt(), trxAmountRaw.BigInt(), pair, abstractPair.Sunswap)
 
 	syncEvent := commonModels.LiquidityEvent{
 		BlockNumber: p.state.Block.Number.Uint64(),
@@ -289,6 +279,65 @@ func (p *Parser) onPairSnapshot(log tronApi.Log, tx string, timestamp int64) {
 		ReserveUSD:  valueUSD,
 	}
 	p.state.AddLiquidity(&syncEvent)
+}
+
+// Dissolve pair into tokens, calculate values, don't multiply instead of reserves
+func (p *Parser) calculateValueInUSD(amount0, amount1 *big.Int, address *tronApi.Address, klass string) decimal.Decimal {
+	tokenA, tokenB, ok := p.GetPairTokens(address, klass)
+	if !ok {
+		p.log.Warn("[calculateValueInUSD] Could not get pair:" + address.ToBase58())
+		return decimal.NewFromInt(0)
+	}
+
+	valueA, okA := p.calculateReservesForToken(tokenA, amount0)
+	valueB, okB := p.calculateReservesForToken(tokenB, amount1)
+
+	if okA && okB {
+		minValue := decimal.Min(valueA, valueB)
+		return minValue
+	}
+	if okA {
+		return valueA
+	}
+	if okB {
+		return valueB
+	}
+
+	return decimal.NewFromInt(0)
+}
+
+// Dissolve pair into tokens, calculate values
+func (p *Parser) calculateReservesInUSD(reserves0, reserves1 *big.Int, address *tronApi.Address, klass string) decimal.Decimal {
+	tokenA, tokenB, ok := p.GetPairTokens(address, klass)
+	if !ok {
+		p.log.Warn("[calculateReservesInUSD] Could not get pair:" + address.ToBase58())
+		return decimal.NewFromInt(0)
+	}
+
+	reservesA, okA := p.calculateReservesForToken(tokenA, reserves0)
+	reservesB, okB := p.calculateReservesForToken(tokenB, reserves1)
+
+	if okA && okB {
+		minReserve := decimal.Min(reservesA, reservesB)
+		return minReserve.Mul(decimal.NewFromInt(2))
+	}
+	if okA {
+		return reservesA.Mul(decimal.NewFromInt(2))
+	}
+	if okB {
+		return reservesB.Mul(decimal.NewFromInt(2))
+	}
+
+	return decimal.NewFromInt(0)
+}
+
+// calculateReservesForToken -- calculates reserves for a specific token using previous price
+func (p *Parser) calculateReservesForToken(token *models.Token, reserves *big.Int) (decimal.Decimal, bool) {
+	priceUSD := p.fiatConverter.GetPriceOfToken(token.Address)
+	if !priceUSD.IsZero() {
+		return decimal.NewFromBigInt(reserves, -token.Decimals).Mul(priceUSD), true
+	}
+	return decimal.NewFromInt(0), false
 }
 
 // onPairCreated - handle listing event
