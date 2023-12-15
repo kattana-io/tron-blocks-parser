@@ -139,7 +139,7 @@ func (p *Parser) onTokenPurchase(log tronApi.Log, tx string, timestamp int64) {
 	priceB := tokenAmount.Div(trxAmount)
 
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA.Address, tokenB.Address, priceA)
-	valueUSD := p.calculateReservesInUSD(tokenAmountRaw.BigInt(), trxAmount.BigInt(), pair, abstractPair.Sunswap)
+	valueUSD := p.calculateValueInUSD(tokenAmountRaw.BigInt(), trxAmount.BigInt(), pair, abstractPair.Sunswap)
 
 	swap := commonModels.PairSwap{
 		Tx:          tx,
@@ -191,7 +191,7 @@ func (p *Parser) onTrxPurchase(log tronApi.Log, tx string, timestamp int64) {
 	priceB := tokenAmount.Div(trxAmount)
 
 	priceAUSD, priceBUSD := p.fiatConverter.ConvertAB(tokenA.Address, tokenB.Address, priceA)
-	valueUSD := p.calculateReservesInUSD(tokenAmountRaw.BigInt(), trxAmountRaw.BigInt(), pair, abstractPair.Sunswap)
+	valueUSD := p.calculateValueInUSD(tokenAmountRaw.BigInt(), trxAmountRaw.BigInt(), pair, abstractPair.Sunswap)
 
 	swap := commonModels.PairSwap{
 		Tx:          tx,
