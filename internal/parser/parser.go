@@ -91,9 +91,9 @@ func (p *Parser) parseTransactions(blockNumber int64) {
 			continue
 		}
 
+		t := tx.BlockTimeStamp / 1000
 		// Process logs
 		for _, log := range tx.Log {
-			t := tx.BlockTimeStamp / 1000
 			txRaw, ok := p.txMap.Load(tx.ID)
 
 			if !ok {
