@@ -2,8 +2,9 @@ package parser
 
 import (
 	"fmt"
-	"github.com/kattana-io/tron-objects-api/pkg/trc20"
 	"sync"
+
+	"github.com/kattana-io/tron-objects-api/pkg/trc20"
 
 	models "github.com/kattana-io/models/pkg/storage"
 	"github.com/kattana-io/tron-blocks-parser/internal/abi"
@@ -106,6 +107,7 @@ func (p *Parser) parseTransactions(blockNumber int64) {
 }
 
 func (p *Parser) GetEncodedBlock() []byte {
+	p.state.Block.Timestamp /= 1000 // consumer service expect to get timestamp in seconds
 	b, err := msgpack.Marshal(p.state)
 	if err != nil {
 		p.log.Warn("GetEncodedBlock: " + err.Error())
