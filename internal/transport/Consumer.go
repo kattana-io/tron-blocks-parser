@@ -3,11 +3,13 @@ package transport
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/kattana-io/tron-blocks-parser/internal/models"
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
-	"os"
-	"time"
 )
 
 type Consumer struct {
@@ -49,8 +51,9 @@ func (t *Consumer) Close() {
 }
 
 func CreateConsumer(topic models.Topics, log *zap.Logger) *Consumer {
+	brokers := strings.Split(os.Getenv("KAFKA"), ",")
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  []string{os.Getenv("KAFKA")},
+		Brokers:  brokers,
 		Topic:    string(topic),
 		GroupID:  "parsers",
 		MinBytes: 1e3,  // 1KB
