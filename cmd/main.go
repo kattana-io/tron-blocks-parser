@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -48,8 +49,10 @@ func main() {
 	pairsCache := cache.NewPairsCache(redis)
 
 	logger.Info(fmt.Sprintf("Start parser in %s mode", mode))
-	publisher := transport.NewPublisher("parser.sys.parsed", os.Getenv("KAFKA"), logger)
-	publisherHolders := transport.NewPublisher("holders_blocks", os.Getenv("KAFKA"), logger)
+
+	brokerAddr := strings.Split(os.Getenv("KAFKA"), ",")
+	publisher := transport.NewPublisher("parser.sys.parsed", brokerAddr, logger)
+	publisherHolders := transport.NewPublisher("holders_blocks", brokerAddr, logger)
 	t := transport.CreateConsumer(topic, logger)
 	t.OnBlock(func(Value []byte) bool {
 		/**

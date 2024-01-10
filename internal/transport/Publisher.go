@@ -13,12 +13,12 @@ import (
 type Publisher struct {
 	log     *zap.Logger
 	w       *kafka.Writer
-	address string
+	address []string
 }
 
-func NewPublisher(topic, address string, log *zap.Logger) *Publisher {
+func NewPublisher(topic string, address []string, log *zap.Logger) *Publisher {
 	w := &kafka.Writer{
-		Addr:     kafka.TCP(address),
+		Addr:     kafka.TCP(address...),
 		Topic:    topic,
 		Balancer: &kafka.LeastBytes{},
 		Async:    true,
@@ -46,7 +46,7 @@ func (p *Publisher) Close() {
 // PublishFailedBlock Create a temporary failed publisher and return block to sender
 func (p *Publisher) PublishFailedBlock(ctx context.Context, block models.Block) bool {
 	failedBlocksWriter := &kafka.Writer{
-		Addr:     kafka.TCP(p.address),
+		Addr:     kafka.TCP(p.address...),
 		Topic:    "failed_blocks",
 		Balancer: &kafka.LeastBytes{},
 		Async:    true,
