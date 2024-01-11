@@ -1,11 +1,12 @@
 package parser
 
 import (
-	abstractPair "github.com/kattana-io/tron-blocks-parser/internal/pair"
 	"math/big"
 	"os"
 	"strings"
 	"time"
+
+	abstractPair "github.com/kattana-io/tron-blocks-parser/internal/pair"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -88,6 +89,7 @@ func (p *Parser) onJmSyncEvent(log tronApi.Log, tx string, owner *tronApi.Addres
 
 		tokenA, tokenB, ok := p.GetPairTokens(pair, abstractPair.UniV2)
 		if !ok {
+			//nolint:goconst
 			p.log.Error("Could not dissolve univ2 pair: " + tx)
 			return
 		}
