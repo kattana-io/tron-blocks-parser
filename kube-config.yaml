@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Config
+clusters:
+- name: "kattana"
+  cluster:
+    server: "https://ran.kattana.trade/k8s/clusters/c-m-c9pqtkfv"
+
+users:
+- name: "kattana"
+  user:
+    token: "${K8S_TOKEN}"
+
+
+contexts:
+- name: "kattana"
+  context:
+    user: "kattana"
+    cluster: "kattana"
+
+current-context: "kattana"

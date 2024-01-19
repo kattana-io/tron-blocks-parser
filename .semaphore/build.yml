@@ -1,0 +1,70 @@
+version: v1.0
+name: Build & Release
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu2004
+blocks:
+  - name: Build
+    task:
+      secrets:
+        - name: GH_CR_PAT
+        - name: SSH_KEY
+      prologue:
+        commands:
+          - checkout
+          - chmod 0600 ~/.ssh/id_rsa_semaphoreci
+          - ssh-add ~/.ssh/id_rsa_semaphoreci
+      jobs:
+        - name: Install GitHub cli
+          commands:
+            - 'curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg'
+            - sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+            - 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null'
+            - sudo apt update
+            - sudo apt install gh -y
+        - name: Docker build
+          commands:
+            - git config --global user.email "semaphore@kattana.io"
+            - git config --global user.name "SemaphoreCI"
+            - make new-minor
+            - echo $GH_CR_PAT | docker login ghcr.io -u kattana-io --password-stdin
+            - export VERSION=$(make version)
+            - 'docker build -t ghcr.io/kattana-io/tron-blocks-parser:${VERSION} .'
+            - 'docker push ghcr.io/kattana-io/tron-blocks-parser:${VERSION}'
+    run:
+      when: branch = 'staging'
+
+  - name: Release
+    task:
+      secrets:
+        - name: GH_CR_PAT
+      jobs:
+        - name: Release tag
+          commands:
+            - checkout
+            - 'export GH_TOKEN=${GH_CR_PAT}'
+            - export VERSION=$(make version)
+            - echo $VERSION
+            - 'gh release create ${VERSION} --target ${SEMAPHORE_GIT_BRANCH} --title ${VERSION} --generate-notes'
+    run:
+      when: branch = 'staging'
+promotions:
+  - name: Staging deploy live
+    pipeline_file: deploy-staging-live.yml
+    deployment_target: Staging
+  - name: Staging deploy live compat
+    pipeline_file: deploy-staging-live-compat.yml
+    deployment_target: Staging
+  - name: Production deploy live
+    pipeline_file: deploy-prod-live.yml
+    deployment_target: Production
+  - name: Production deploy live compat
+    pipeline_file: deploy-prod-live-compat.yml
+    deployment_target: Production
+  - name: Production deploy history
+    pipeline_file: deploy-prod-history.yml
+    deployment_target: Production
+  - name: Production deploy history compat
+    pipeline_file: deploy-prod-history-compat.yml
+    deployment_target: Production
