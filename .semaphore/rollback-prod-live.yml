@@ -1,0 +1,21 @@
+version: v1.0
+name: Rollback production
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu2004
+  containers:
+    - name: main
+      image: 'andrii7kattana/k8s:latest'
+blocks:
+  - name: Rollback prod
+    task:
+      jobs:
+        - name: k8s rollback
+          commands:
+            - checkout
+            - envsubst < kube-config.yaml > config
+            - cp config $HOME/.kube/config
+            - helm rollback tron-live-parser -n production
+      secrets:
+        - name: K8S_TOKEN
