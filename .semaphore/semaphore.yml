@@ -1,0 +1,31 @@
+version: v1.0
+name: Tests & lint
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu2004
+
+blocks:
+  - name: Run tests
+    task:
+      prologue:
+        commands:
+          - checkout
+          - sem-version go 1.21
+          - git config --global url.https://${GH_CR_PAT}@github.com/kattana-io.insteadOf https://github.com/kattana-io
+          - export GOPRIVATE=github.com/kattana-io
+      secrets:
+        - name: GH_CR_PAT
+      jobs:
+        # - name: go test
+        #   commands:
+        #     - make test
+        - name: go lint
+          commands:
+            - make lint
+
+promotions:
+  - name: Build pkg & release tag
+    pipeline_file: build.yml
+    auto_promote:
+      when: branch = 'main' AND result = 'passed'

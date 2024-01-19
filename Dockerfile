@@ -8,6 +8,10 @@ COPY tokens.json ./
 COPY sunswap.json ./
 COPY go.mod go.sum ./
 RUN apk --no-cache add git mercurial ca-certificates
+
+RUN git config --global url.https://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@github.com/kattana-io.insteadOf https://github.com/kattana-io
+RUN export GOPRIVATE=github.com/kattana-io
+
 RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux go build -o ./.bin/app ./cmd/main.go
 

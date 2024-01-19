@@ -1,0 +1,26 @@
+version: v1.0
+name: Deploy production
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu2004
+  containers:
+    - name: main
+      image: 'andrii7kattana/k8s:latest'
+blocks:
+  - name: Deploy
+    task:
+      jobs:
+        - name: k8s upgrade
+          commands:
+            - checkout
+            - envsubst < kube-config.yaml > config
+            - cp config $HOME/.kube/config
+            - VERSION=$(git describe --tags --abbrev=0)
+            - 'helm upgrade --install tron-history-parser deployment/ -f deployment/values-prod-history.yaml --set image.tag=${VERSION} -n production'
+      secrets:
+        - name: K8S_TOKEN
+promotions:
+  - name: Prod rollback
+    pipeline_file: rollback-prod-history.yml
+    deployment_target: Production
