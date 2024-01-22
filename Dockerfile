@@ -1,17 +1,17 @@
 FROM golang:1.21-alpine AS gobuild
 
 WORKDIR /build
+
+RUN apk --no-cache add git mercurial ca-certificates
 COPY cmd ./cmd
 COPY internal ./internal
+COPY go.mod go.sum ./
 COPY quotes.json ./
 COPY tokens.json ./
 COPY sunswap.json ./
-COPY go.mod go.sum ./
-RUN apk --no-cache add git mercurial ca-certificates
 
-RUN git config --global url.https://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@github.com/kattana-io.insteadOf https://github.com/kattana-io
+RUN git config --global url.https://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@github.com/kattana-io.insteadOf https://github.com/kattana-io
 RUN export GOPRIVATE=github.com/kattana-io
-
 RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux go build -o ./.bin/app ./cmd/main.go
 

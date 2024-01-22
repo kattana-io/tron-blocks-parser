@@ -53,18 +53,9 @@ promotions:
   - name: Staging deploy live
     pipeline_file: deploy-staging-live.yml
     deployment_target: Staging
-  - name: Staging deploy live compat
-    pipeline_file: deploy-staging-live-compat.yml
-    deployment_target: Staging
   - name: Production deploy live
     pipeline_file: deploy-prod-live.yml
     deployment_target: Production
-  - name: Production deploy live compat
-    pipeline_file: deploy-prod-live-compat.yml
-    deployment_target: Production
   - name: Production deploy history
     pipeline_file: deploy-prod-history.yml
-    deployment_target: Production
-  - name: Production deploy history compat
-    pipeline_file: deploy-prod-history-compat.yml
     deployment_target: Production
