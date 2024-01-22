@@ -27,3 +27,5 @@ command:
   - ./app
 
 args: 
+  - '--mode'
+  - HISTORY
