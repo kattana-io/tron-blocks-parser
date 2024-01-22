@@ -30,7 +30,7 @@ blocks:
             - make new-minor
             - echo $GH_CR_PAT | docker login ghcr.io -u kattana-io --password-stdin
             - export VERSION=$(make version)
-            - 'docker build -t ghcr.io/kattana-io/tron-blocks-parser:${VERSION} .'
+            - 'docker build -t ghcr.io/kattana-io/tron-blocks-parser:${VERSION} . --build-arg PAT=${GITHUB_ADMIN_PAT}'
             - 'docker push ghcr.io/kattana-io/tron-blocks-parser:${VERSION}'
     run:
       when: branch = 'staging'

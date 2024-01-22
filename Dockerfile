@@ -1,3 +1,5 @@
+ARG PAT
+
 FROM golang:1.21-alpine AS gobuild
 
 WORKDIR /build
@@ -10,7 +12,7 @@ COPY quotes.json ./
 COPY tokens.json ./
 COPY sunswap.json ./
 
-RUN git config --global url.https://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@github.com/kattana-io.insteadOf https://github.com/kattana-io
+RUN git config --global url.https://${PAT}@github.com/kattana-io.insteadOf https://github.com/kattana-io
 RUN export GOPRIVATE=github.com/kattana-io
 RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux go build -o ./.bin/app ./cmd/main.go
