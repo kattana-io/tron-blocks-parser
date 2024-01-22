@@ -10,6 +10,7 @@ blocks:
       secrets:
         - name: GH_CR_PAT
         - name: SSH_KEY
+        - name: GITHUB_ADMIN_PAT
       prologue:
         commands:
           - checkout
