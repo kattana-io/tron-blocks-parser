@@ -9,7 +9,7 @@ COPY sunswap.json ./
 COPY go.mod go.sum ./
 RUN apk --no-cache add git mercurial ca-certificates
 
-RUN git config --global url.https://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@github.com/kattana-io.insteadOf https://github.com/kattana-io
+RUN git config --global url.https://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@github.com/kattana-io.insteadOf https://github.com/kattana-io
 RUN export GOPRIVATE=github.com/kattana-io
 
 RUN go mod download
