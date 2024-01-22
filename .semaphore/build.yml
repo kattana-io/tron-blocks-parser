@@ -10,6 +10,7 @@ blocks:
       secrets:
         - name: GH_CR_PAT
         - name: SSH_KEY
+        - name: GITHUB_ADMIN_PAT
       prologue:
         commands:
           - checkout
@@ -30,7 +31,7 @@ blocks:
             - make new-minor
             - echo $GH_CR_PAT | docker login ghcr.io -u kattana-io --password-stdin
             - export VERSION=$(make version)
-            - 'docker build -t ghcr.io/kattana-io/tron-blocks-parser:${VERSION} .'
+            - 'docker build -t ghcr.io/kattana-io/tron-blocks-parser:${VERSION} . --build-arg PAT=${GITHUB_ADMIN_PAT}'
             - 'docker push ghcr.io/kattana-io/tron-blocks-parser:${VERSION}'
     run:
       when: branch = 'staging'
@@ -53,18 +54,9 @@ promotions:
   - name: Staging deploy live
     pipeline_file: deploy-staging-live.yml
     deployment_target: Staging
-  - name: Staging deploy live compat
-    pipeline_file: deploy-staging-live-compat.yml
-    deployment_target: Staging
   - name: Production deploy live
     pipeline_file: deploy-prod-live.yml
     deployment_target: Production
-  - name: Production deploy live compat
-    pipeline_file: deploy-prod-live-compat.yml
-    deployment_target: Production
   - name: Production deploy history
     pipeline_file: deploy-prod-history.yml
-    deployment_target: Production
-  - name: Production deploy history compat
-    pipeline_file: deploy-prod-history-compat.yml
     deployment_target: Production
